@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Treasure Island｜神秘岛探险</title>
+<style>
+:root{
+  --bg1:#fff6dc;--bg2:#e8cf98;--paper:#fffdf4;--line:#ebc778;--ink:#623813;--muted:#896035;
+  --green:#68c85a;--blue:#59afea;--orange:#f48638;--red:#eb6a59;--purple:#9c74ee;--yellow:#ffd45a;
+  --shadow:0 14px 30px rgba(52,31,8,.17);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);
+  background:
+    radial-gradient(circle at 9% 8%,rgba(255,255,255,.88),transparent 15%),
+    radial-gradient(circle at 90% 9%,rgba(255,255,255,.54),transparent 14%),
+    linear-gradient(180deg,var(--bg1),var(--bg2));
+}
+button,textarea{font-family:inherit}
+.page{width:min(1600px,100%);margin:0 auto;padding:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:76px;height:76px;border-radius:24px;display:grid;place-items:center;font-size:42px;background:linear-gradient(145deg,#fff,#ffe18c);border:4px solid #fff;box-shadow:var(--shadow)}
+h1{margin:0;font-size:clamp(30px,3vw,48px);line-height:1;color:#fff;text-shadow:0 4px 0 #784116,3px 0 0 #784116,-3px 0 0 #784116,0 -3px 0 #784116,0 10px 17px rgba(0,0,0,.15)}
+.sub{margin-top:6px;font-weight:1000;color:#7c491b}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{
+  border:0;border-radius:999px;padding:10px 14px;background:#fff8d8;color:#683812;font-weight:1000;
+  box-shadow:0 4px 0 #c99a41,0 8px 16px rgba(52,31,8,.13);cursor:pointer
+}
+.btn.primary{background:linear-gradient(180deg,#ffb34c,#f17433);color:#fff;box-shadow:0 4px 0 #b94d18,0 8px 16px rgba(52,31,8,.13)}
+.btn.green{background:linear-gradient(180deg,#bcec80,#6dcc57);color:#205b17;box-shadow:0 4px 0 #419e36,0 8px 16px rgba(52,31,8,.13)}
+.btn.purple{background:linear-gradient(180deg,#d8c0ff,#9d75ee);color:#fff;box-shadow:0 4px 0 #6d4bc0,0 8px 16px rgba(52,31,8,.13)}
+.btn.small{padding:7px 10px;font-size:13px}
+.btn:disabled{opacity:.48;cursor:not-allowed;filter:grayscale(.25)}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #c99a41,0 4px 10px rgba(52,31,8,.12)}
+.layout{display:grid;grid-template-columns:320px 1fr 350px;gap:14px;align-items:start}
+.panel{background:rgba(255,253,244,.97);border:4px solid var(--line);border-radius:28px;padding:14px;box-shadow:var(--shadow)}
+.panel h2{margin:0 0 10px;font-size:20px;color:#794117;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hint{font-size:13px;line-height:1.45;color:var(--muted);margin:6px 0 10px}
+.student-list{display:flex;flex-wrap:wrap;gap:7px;max-height:220px;overflow:auto}
+.chip{border:2px solid #e8bf65;background:#fff9df;border-radius:999px;padding:8px 10px;color:#703911;font-weight:1000;cursor:pointer}
+.chip.selected{background:#b8ec81;border-color:#50b747;color:#235d17}
+textarea{width:100%;min-height:110px;border:2px solid #e8bf65;border-radius:16px;background:#fffef7;padding:10px;color:#5b2f11;font-weight:700;resize:vertical}
+.hide{display:none!important}
+.selected-list,.score-list,.log{display:flex;flex-direction:column;gap:8px}
+.player-row,.score-row{display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;background:#fff8dd;border-radius:16px;padding:7px 8px;border:2px solid rgba(111,61,19,.12);font-weight:1000}
+.score-row.active{outline:3px solid #ffd34f;background:#fffce8}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:1000;border:3px solid rgba(255,255,255,.88);box-shadow:0 3px 8px rgba(0,0,0,.14);font-size:20px}
+.player-sub{font-size:12px;color:#8b6033;margin-top:2px}
+.progress{height:8px;border-radius:999px;background:#efd28d;overflow:hidden;margin-top:4px}.progress span{display:block;height:100%;background:linear-gradient(90deg,#67cb57,#ffd14d,#f17133)}
+.game-wrap{display:flex;flex-direction:column;gap:12px}
+.turn-banner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,#fff7c9,#ffe18b);border:4px solid #fff;border-radius:24px;padding:10px 14px;box-shadow:var(--shadow)}
+.turn-now{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:1000;color:#733f17}
+.badge{background:#fff;border:2px dashed #d49a31;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:1000}
+.island-shell{
+  position:relative;overflow:hidden;min-height:780px;padding:18px;border:7px solid rgba(255,255,255,.92);border-radius:40px;box-shadow:var(--shadow);
+  background:
+    radial-gradient(circle at 50% 53%,#94d879 0 24%,#6fc75b 25% 38%,transparent 39%),
+    radial-gradient(circle at 50% 52%,#f5d89c 0 45%,transparent 46%),
+    linear-gradient(180deg,#88d8ff 0%,#53b8ec 100%);
+}
+.island-shell:before{content:"";position:absolute;inset:14px;border:3px dashed rgba(255,255,255,.28);border-radius:30px;pointer-events:none}
+.cloud{position:absolute;font-size:64px;opacity:.42;filter:blur(.2px)}
+.cloud.c1{left:4%;top:9%}.cloud.c2{right:6%;top:18%}.cloud.c3{left:10%;bottom:10%}.cloud.c4{right:8%;bottom:8%}
+.island-map{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:735px}
+.zone{
+  position:relative;border:5px solid rgba(255,255,255,.92);border-radius:28px;padding:12px;box-shadow:0 10px 20px rgba(36,24,7,.15);
+  background:rgba(255,253,244,.88);min-height:228px;overflow:hidden
+}
+.zone.locked{filter:grayscale(.7);opacity:.7}
+.zone-title{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:1000;font-size:18px;color:#704015;margin-bottom:9px}
+.zone-icon{font-size:42px}
+.zone-spots{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.spot{
+  min-height:70px;border:0;border-radius:18px;background:linear-gradient(145deg,#e4e6e7,#a9b0b4);color:#fff;font-size:28px;font-weight:1000;
+  border:4px solid rgba(255,255,255,.82);box-shadow:inset 7px 8px 0 rgba(255,255,255,.18),0 6px 12px rgba(50,31,8,.13);cursor:pointer
+}
+.spot.revealed{background:linear-gradient(145deg,#fff8cc,#ffc95e);color:#714216}
+.spot:disabled{cursor:not-allowed}
+.lock-overlay{position:absolute;inset:0;background:rgba(76,67,56,.35);display:grid;place-items:center;text-align:center;padding:16px;font-weight:1000;color:#fff;font-size:18px;backdrop-filter:blur(2px)}
+.center-card{grid-column:1/-1;background:rgba(255,253,244,.94);border:5px solid #fff;border-radius:28px;padding:13px;display:grid;grid-template-columns:1.15fr .85fr;gap:12px;box-shadow:0 9px 18px rgba(44,27,8,.14)}
+.explorer-view{display:flex;align-items:center;gap:14px}
+.explorer-figure{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;font-size:58px;border:6px solid #fff;background:linear-gradient(145deg,#fff2a7,#f48638);box-shadow:0 8px 16px rgba(60,34,8,.15)}
+.explorer-name{font-size:26px;font-weight:1000}.explorer-stats{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.stat-pill{background:#fff7d4;border:2px solid #edc878;border-radius:999px;padding:6px 10px;font-size:13px;font-weight:1000}
+.unlocks{display:flex;flex-direction:column;justify-content:center;gap:8px}
+.unlock-row{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;background:#fff8dd;border:2px solid #edc878;border-radius:16px;padding:8px}
+.unlock-row.active{background:#eaffd8;border-color:#69c558}.unlock-icon{font-size:30px}.unlock-text b{display:block}.unlock-text span{font-size:12px;color:#8b6033}
+.final-btn{grid-column:1/-1;display:flex;justify-content:center;margin-top:4px}
+.log{height:245px;overflow:auto}.log-item{background:#fff;border-left:6px solid #f6c14b;border-radius:12px;padding:7px 8px;font-size:13px;line-height:1.35}
+.toast-wrap{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:1600;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:linear-gradient(180deg,#fff,#ffe28d);border:5px solid #fff;border-radius:22px;padding:12px 18px;box-shadow:0 18px 32px rgba(35,20,4,.22);color:#6d3712;font-size:22px;font-weight:1000;min-width:min(560px,92vw);text-align:center;animation:pop .25s ease}
+@keyframes pop{from{transform:scale(.86);opacity:0}to{transform:scale(1);opacity:1}}
+.modal{position:fixed;inset:0;background:rgba(34,20,6,.55);display:none;place-items:center;z-index:1400;padding:20px}.modal.show{display:grid}
+.modal-card{width:min(720px,94vw);background:linear-gradient(145deg,#fffdf4,#ffe08d);border:8px solid #fff;border-radius:34px;padding:22px;text-align:center;box-shadow:0 24px 44px rgba(20,12,4,.33)}
+.modal-title{font-size:30px;font-weight:1000;color:#713f16;margin:6px 0}.modal-text{font-size:16px;font-weight:800;color:#7e5326;line-height:1.45;margin:8px 0 14px;white-space:pre-line}
+.role-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.role-card{border:4px solid #fff;background:#fff8dd;border-radius:22px;padding:11px;cursor:pointer;box-shadow:0 7px 12px rgba(62,37,9,.13)}
+.role-card:hover{transform:translateY(-2px)}.role-emoji{font-size:48px}.role-name{font-weight:1000;margin-top:4px}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.rank-list{text-align:left;background:#fff;border-radius:18px;padding:12px;margin:10px 0;font-weight:1000}.rank-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #e3bd62;padding:7px 4px}.rank-row:last-child{border-bottom:0}
+@media(max-width:1260px){.layout{grid-template-columns:320px 1fr}.right{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+@media(max-width:900px){.page{padding:10px}.layout{grid-template-columns:1fr}.right{display:block}.island-map{grid-template-columns:1fr}.center-card{grid-template-columns:1fr}.role-picker{grid-template-columns:repeat(2,1fr)}.zone{min-height:210px}}
+</style>
+</head>
+<body>
+<div id="toastWrap" class="toast-wrap"></div>
+<div class="page">
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🏝️</div>
+    <div><h1>Treasure Island</h1><div class="sub">神秘岛探险｜揭开迷雾 · 收集碎片 · 解锁区域 · 寻找最终宝藏</div></div>
+  </div>
+  <div class="controls">
+    <button id="startBtn" class="btn primary">开始新局</button>
+    <button id="nextBtn" class="btn green">下一位小朋友</button>
+    <button id="settleBtn" class="btn">一键结算</button>
+    <button id="saveBtn" class="btn">保存进度</button>
+    <button id="loadBtn" class="btn">读取进度</button>
+    <button id="soundBtn" class="btn">音效：开</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel">
+    <h2>学生 / 小组 <button id="editRosterBtn" class="btn small">编辑名单</button></h2>
+    <div class="hint">选择学生后，每个小朋友可以选择自己的探险角色。探索完成后自动切换下一位，同时保留手动“下一位小朋友”。</div>
+    <div id="studentList" class="student-list"></div>
+    <textarea id="rosterText" class="hide"></textarea>
+    <div class="controls" style="margin-top:8px">
+      <button id="saveRosterBtn" class="btn small">保存名单</button>
+      <button id="restoreRosterBtn" class="btn small">恢复默认</button>
+      <button id="quickBtn" class="btn small">示例4人</button>
+      <button id="clearBtn" class="btn small">清空</button>
+    </div>
+    <h2 style="margin-top:14px">参赛探险家</h2>
+    <div id="selectedList" class="selected-list"></div>
+    <div class="hint">默认名单中 Rocket / Cici / Joe 放在一起。开始新局后不能更换角色。</div>
+  </section>
+
+  <section class="game-wrap">
+    <div class="turn-banner">
+      <div id="turnNow" class="turn-now">🎯 请选择学生并开始游戏</div>
+      <div class="controls">
+        <span id="levelBadge" class="badge">Lv.1 小探险家</span>
+        <span id="actionBadge" class="badge">等待开始</span>
+      </div>
+    </div>
+
+    <div class="island-shell">
+      <div class="cloud c1">☁️</div><div class="cloud c2">☁️</div><div class="cloud c3">☁️</div><div class="cloud c4">☁️</div>
+      <div id="islandMap" class="island-map"></div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <section class="panel">
+      <h2>探险排行榜</h2>
+      <div id="scoreList" class="score-list"></div>
+    </section>
+    <section class="panel">
+      <h2>游戏记录</h2>
+      <div id="logBox" class="log"></div>
+    </section>
+  </aside>
+</main>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-card">
+    <div id="modalTitle" class="modal-title">选择角色</div>
+    <div id="modalBody" class="modal-text"></div>
+    <div id="modalExtra"></div>
+    <div id="modalActions" class="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEFAULT_ROSTER=['Rocket','Cici','Joe','Cassie','Rachel','Bobo','Hannah','Leon','Sylvia','Gorman','Ryan','Aaron','Annie','Yuki','Linna','Helen','Ken','Charlie','Via','Eva','Zoey'];
+  const COLORS=['#ff6aa9','#4bb8ff','#a36cff','#ff9446','#36c56a','#ffd44c','#5b79ff','#ff5d5d','#2dd0c3','#b27dff'];
+  const ROLES=[
+    {id:'pirate',name:'小海盗',emoji:'🏴‍☠️'},
+    {id:'ranger',name:'森林探险家',emoji:'🧭'},
+    {id:'diver',name:'海底潜水员',emoji:'🤿'},
+    {id:'wizard',name:'魔法探险家',emoji:'🧙'},
+    {id:'knight',name:'勇敢骑士',emoji:'🛡️'},
+    {id:'archaeologist',name:'考古学家',emoji:'🏺'},
+    {id:'captain',name:'小船长',emoji:'⛵'},
+    {id:'hunter',name:'宝藏猎人',emoji:'🔍'}
+  ];
+  const ZONES=[
+    {id:'beach',name:'阳光沙滩',emoji:'🏖️',need:0},
+    {id:'forest',name:'神秘森林',emoji:'🌲',need:0},
+    {id:'cave',name:'水晶山洞',emoji:'🕳️',need:3},
+    {id:'castle',name:'古老城堡',emoji:'🏰',need:6},
+    {id:'volcano',name:'火山遗迹',emoji:'🌋',need:6},
+    {id:'undersea',name:'海底洞穴',emoji:'🌊',need:6}
+  ];
+  const EVENTS=[
+    {id:'fruit',label:'找到水果宝箱',emoji:'🍎',points:1,fragment:0,gem:0,chest:1,weight:25},
+    {id:'gem',label:'发现宝石',emoji:'💎',points:2,fragment:0,gem:1,chest:0,weight:22},
+    {id:'fragment',label:'找到地图碎片',emoji:'🗺️',points:1,fragment:1,gem:0,chest:0,weight:20},
+    {id:'key',label:'找到古老钥匙',emoji:'🗝️',points:1,fragment:0,gem:0,chest:0,key:1,weight:10},
+    {id:'monster',label:'打败岛上小怪物',emoji:'👾',points:2,fragment:0,gem:0,chest:0,weight:12},
+    {id:'empty',label:'只发现了一片空地',emoji:'🍃',points:0,fragment:0,gem:0,chest:0,weight:8},
+    {id:'rare',label:'发现稀有彩虹宝石',emoji:'🌈',points:3,fragment:1,gem:1,chest:0,weight:3}
+  ];
+
+  let roster=loadRoster(),selected=[],players=[],current=0,started=false,soundOn=true,audioCtx=null,choosingIndex=null;
+  const $=id=>document.getElementById(id);
+
+  function loadRoster(){try{const v=JSON.parse(localStorage.getItem('treasureIslandRoster')||'null');if(Array.isArray(v)&&v.length)return v;}catch(e){}return DEFAULT_ROSTER.slice()}
+  function saveRoster(){localStorage.setItem('treasureIslandRoster',JSON.stringify(roster))}
+  function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]))}
+  function roleById(id){return ROLES.find(r=>r.id===id)||ROLES[0]}
+  function weightedPick(list){const total=list.reduce((s,x)=>s+x.weight,0);let r=Math.random()*total;for(const item of list){r-=item.weight;if(r<=0)return item}return list[0]}
+  function beep(kind='click'){if(!soundOn)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();const f={click:520,success:770,fail:220,coin:920,special:650,end:430}[kind]||520;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.06,audioCtx.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.15);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.17)}catch(e){}}
+  function toast(text,kind='click'){beep(kind);const wrap=$('toastWrap'),div=document.createElement('div');div.className='toast';div.textContent=text;wrap.appendChild(div);setTimeout(()=>{div.style.opacity='0';div.style.transform='scale(.94)';div.style.transition='.25s'},1650);setTimeout(()=>div.remove(),1950)}
+  function addLog(text){const div=document.createElement('div');div.className='log-item';div.textContent=text;$('logBox').prepend(div)}
+  function levelOf(p){if(p.fragments>=6)return 3;if(p.fragments>=3)return 2;return 1}
+  function levelName(lv){return lv===1?'小探险家':lv===2?'勇敢探险家':'宝藏猎人'}
+  function emptyMap(){const map={};ZONES.forEach(z=>map[z.id]=Array.from({length:4},()=>null));return map}
+  function syncPlayers(reset=false){
+    const old=players;
+    players=selected.map((name,i)=>{const prev=old.find(p=>p.name===name);return{
+      name,color:prev?.color||COLORS[i%COLORS.length],roleId:prev?.roleId||ROLES[i%ROLES.length].id,
+      score:reset?0:(prev?.score??0),fragments:reset?0:(prev?.fragments??0),gems:reset?0:(prev?.gems??0),
+      chests:reset?0:(prev?.chests??0),keys:reset?0:(prev?.keys??0),finalFound:reset?false:(prev?.finalFound??false),
+      map:reset?emptyMap():(prev?.map||emptyMap())
+    }});
+    if(current>=players.length)current=0;
+  }
+
+  function renderRoster(){
+    $('studentList').innerHTML=roster.map(n=>`<button class="chip ${selected.includes(n)?'selected':''}" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    $('studentList').querySelectorAll('.chip').forEach(btn=>btn.onclick=()=>toggleStudent(btn.dataset.name));
+    $('rosterText').value=roster.join('
+');
+  }
+  function toggleStudent(name){
+    if(started){toast('游戏中不能增减学生','fail');return}
+    selected=selected.includes(name)?selected.filter(n=>n!==name):[...selected,name];
+    syncPlayers(false);renderAll();
+  }
+  function renderSelected(){
+    const box=$('selectedList');
+    if(!players.length){box.innerHTML='<div class="hint">还没有选择学生。</div>';return}
+    box.innerHTML=players.map((p,i)=>{const role=roleById(p.roleId);return`<div class="player-row">
+      <div class="avatar" style="background:${p.color}">${role.emoji}</div>
+      <div><div>${escapeHtml(p.name)}</div><div class="player-sub">${role.name} · Lv.${levelOf(p)}</div></div>
+      <button class="btn small" data-pick="${i}">${started?'查看':'选角色'}</button>
+    </div>`}).join('');
+    box.querySelectorAll('[data-pick]').forEach(btn=>btn.onclick=()=>openRolePicker(+btn.dataset.pick));
+  }
+  function renderScores(){
+    const box=$('scoreList');
+    if(!players.length){box.innerHTML='<div class="hint">选择学生后显示探险排行。</div>';return}
+    const max=Math.max(...players.map(p=>p.score),1);
+    box.innerHTML=players.map((p,i)=>{const role=roleById(p.roleId),pct=Math.max(5,Math.min(100,p.score/max*100));return`<div class="score-row ${started&&i===current?'active':''}">
+      <div class="avatar" style="background:${p.color}">${role.emoji}</div>
+      <div><div>${started&&i===current?'👉 ':''}${escapeHtml(p.name)} · ${p.score}分</div>
+      <div class="player-sub">🗺️${p.fragments} 💎${p.gems} 🎁${p.chests} ${p.finalFound?'👑':''}</div>
+      <div class="progress"><span style="width:${pct}%"></span></div></div>
+      <div>Lv.${levelOf(p)}</div>
+    </div>`}).join('');
+  }
+  function renderCurrent(){
+    if(!players.length){$('turnNow').innerHTML='🎯 请选择学生并开始游戏';return}
+    const p=players[current],role=roleById(p.roleId),lv=levelOf(p);
+    $('turnNow').innerHTML=`<div class="avatar" style="background:${p.color}">${role.emoji}</div><span>${started?'轮到 '+escapeHtml(p.name):'已选择 '+players.length+' 位学生'}</span>`;
+    $('levelBadge').textContent=`Lv.${lv} ${levelName(lv)}`;
+    $('actionBadge').textContent=started?'请选择一个迷雾地点':'等待开始';
+  }
+
+  function renderMap(){
+    const map=$('islandMap');
+    if(!players.length){
+      map.innerHTML=`<div class="center-card"><div class="explorer-view"><div class="explorer-figure">🏝️</div><div><div class="explorer-name">等待探险家</div><div class="hint">先从左侧选择学生。</div></div></div></div>`;
+      return;
+    }
+    const p=players[current],role=roleById(p.roleId);
+    map.innerHTML=ZONES.map(zone=>{
+      const locked=p.fragments<zone.need;
+      return `<section class="zone ${locked?'locked':''}">
+        <div class="zone-title"><span>${zone.name}</span><span class="zone-icon">${zone.emoji}</span></div>
+        <div class="zone-spots">${p.map[zone.id].map((event,idx)=>`<button class="spot ${event?'revealed':''}" data-zone="${zone.id}" data-index="${idx}" ${locked||event||!started?'disabled':''}>${event?event.emoji:'?'}</button>`).join('')}</div>
+        ${locked?`<div class="lock-overlay">🔒<br>需要 ${zone.need} 张地图碎片</div>`:''}
+      </section>`;
+    }).join('')+`
+      <section class="center-card">
+        <div class="explorer-view">
+          <div class="explorer-figure">${role.emoji}</div>
+          <div><div class="explorer-name">${escapeHtml(p.name)} · ${role.name}</div>
+          <div class="explorer-stats">
+            <span class="stat-pill">⭐ ${p.score}分</span><span class="stat-pill">🗺️ ${p.fragments}</span><span class="stat-pill">💎 ${p.gems}</span>
+            <span class="stat-pill">🎁 ${p.chests}</span><span class="stat-pill">🗝️ ${p.keys}</span>
+          </div></div>
+        </div>
+        <div class="unlocks">
+          <div class="unlock-row ${p.fragments>=3?'active':''}"><div class="unlock-icon">🕳️</div><div class="unlock-text"><b>隐藏区域</b><span>3张碎片解锁水晶山洞</span></div><div>${p.fragments>=3?'✅':'🔒'}</div></div>
+          <div class="unlock-row ${p.fragments>=6?'active':''}"><div class="unlock-icon">🏰</div><div class="unlock-text"><b>藏宝洞入口</b><span>6张碎片解锁高级区域</span></div><div>${p.fragments>=6?'✅':'🔒'}</div></div>
+          <div class="unlock-row ${p.fragments>=10?'active':''}"><div class="unlock-icon">👑</div><div class="unlock-text"><b>最终宝藏</b><span>10张碎片开启最终宝箱</span></div><div>${p.fragments>=10?'✅':'🔒'}</div></div>
+        </div>
+        <div class="final-btn"><button id="finalTreasureBtn" class="btn purple" ${!started||p.fragments<10||p.finalFound?'disabled':''}>👑 打开最终宝藏</button></div>
+      </section>`;
+    map.querySelectorAll('.spot').forEach(btn=>btn.onclick=()=>explore(btn.dataset.zone,+btn.dataset.index));
+    const finalBtn=$('finalTreasureBtn');if(finalBtn)finalBtn.onclick=openFinalTreasure;
+  }
+
+  function renderAll(){renderRoster();renderSelected();renderScores();renderCurrent();renderMap()}
+
+  function openRolePicker(index){
+    if(!players[index])return;
+    if(started){
+      const p=players[index],r=roleById(p.roleId);
+      $('modalTitle').textContent=p.name+' 的探险家';
+      $('modalBody').textContent=`${r.name}
+Lv.${levelOf(p)} ${levelName(levelOf(p))}
+地图碎片：${p.fragments}`;
+      $('modalExtra').innerHTML=`<div style="font-size:96px;margin:14px">${r.emoji}</div>`;
+      $('modalActions').innerHTML='<button class="btn primary" id="closeModalBtn">知道了</button>';
+      $('closeModalBtn').onclick=()=>$('modal').classList.remove('show');$('modal').classList.add('show');return;
+    }
+    choosingIndex=index;
+    $('modalTitle').textContent=`${players[index].name} 选择探险角色`;
+    $('modalBody').textContent='点击一个角色。';
+    $('modalExtra').innerHTML=`<div class="role-picker">${ROLES.map(r=>`<button class="role-card" data-role="${r.id}"><div class="role-emoji">${r.emoji}</div><div class="role-name">${r.name}</div></button>`).join('')}</div>`;
+    $('modalActions').innerHTML='<button class="btn" id="cancelRoleBtn">取消</button>';
+    $('cancelRoleBtn').onclick=()=>$('modal').classList.remove('show');
+    $('modalExtra').querySelectorAll('[data-role]').forEach(btn=>btn.onclick=()=>{players[choosingIndex].roleId=btn.dataset.role;$('modal').classList.remove('show');toast(`${players[choosingIndex].name} 选择了 ${roleById(btn.dataset.role).name}`,'special');renderAll()});
+    $('modal').classList.add('show');
+  }
+
+  function startGame(){
+    if(!players.length){alert('请先选择学生。');return}
+    syncPlayers(true);current=0;started=true;$('logBox').innerHTML='';addLog('🚩 神秘岛探险开始！每次探索后自动切换下一位。');toast('神秘岛探险开始！','special');renderAll();
+  }
+  function advanceTurn(){if(players.length)current=(current+1)%players.length;renderAll()}
+  function manualNext(){if(!players.length)return;addLog('⏭ 老师手动切换到下一位。');toast('已切换到下一位','click');advanceTurn()}
+  function explore(zoneId,index){
+    if(!started||!players.length)return;
+    const p=players[current];if(p.map[zoneId][index])return;
+    const beforeLv=levelOf(p),event=weightedPick(EVENTS);
+    p.map[zoneId][index]=event;p.score+=event.points;p.fragments+=event.fragment||0;p.gems+=event.gem||0;p.chests+=event.chest||0;p.keys+=event.key||0;
+    const afterLv=levelOf(p);let text=`${p.name} 在${ZONES.find(z=>z.id===zoneId).name}：${event.emoji} ${event.label}`;
+    if(event.points)text+=`，+${event.points}分`;
+    if(afterLv>beforeLv){p.score+=1;text+=`；升级为 ${levelName(afterLv)}，+1分`}
+    addLog(text);toast(text,event.points>0?'success':'click');advanceTurn();
+  }
+  function openFinalTreasure(){
+    if(!started||!players.length)return;
+    const p=players[current];if(p.fragments<10||p.finalFound)return;
+    p.finalFound=true;p.score+=5;p.chests+=1;
+    const text=`${p.name} 找到最终宝藏！👑 +5分`;
+    addLog(text);toast(text,'end');advanceTurn();
+  }
+  function settlement(){
+    if(!players.length)return;
+    const ranked=players.slice().sort((a,b)=>b.score-a.score||b.fragments-a.fragments||b.chests-a.chests);
+    $('modalTitle').textContent='最终结算';
+    $('modalBody').textContent=`Winner: ${ranked[0].name}
+总分：${ranked[0].score}`;
+    $('modalExtra').innerHTML=`<div class="rank-list">${ranked.map((p,i)=>{const r=roleById(p.roleId);return`<div class="rank-row"><span>${i+1}. ${escapeHtml(p.name)} · ${r.emoji}${r.name}</span><span>${p.score}分｜🗺️${p.fragments}｜🎁${p.chests}${p.finalFound?'｜👑':''}</span></div>`}).join('')}</div>`;
+    $('modalActions').innerHTML='<button class="btn primary" id="closeSettleBtn">知道了</button>';
+    $('closeSettleBtn').onclick=()=>$('modal').classList.remove('show');$('modal').classList.add('show');beep('end');
+  }
+  function saveProgress(){if(!players.length)return;localStorage.setItem('treasureIslandProgress',JSON.stringify({selected,players,current,started}));addLog('💾 已保存当前进度。');toast('进度已保存','success')}
+  function loadProgress(){try{const d=JSON.parse(localStorage.getItem('treasureIslandProgress')||'null');if(!d){alert('没有找到保存进度。');return}selected=d.selected||[];players=d.players||[];current=d.current||0;started=!!d.started;renderAll();addLog('📂 已读取保存进度。');toast('进度已读取','success')}catch(e){alert('读取失败。')}}
+
+  $('startBtn').onclick=startGame;$('nextBtn').onclick=manualNext;$('settleBtn').onclick=settlement;$('saveBtn').onclick=saveProgress;$('loadBtn').onclick=loadProgress;
+  $('soundBtn').onclick=()=>{soundOn=!soundOn;$('soundBtn').textContent=soundOn?'音效：开':'音效：关'};
+  $('editRosterBtn').onclick=()=>$('rosterText').classList.toggle('hide');
+  $('saveRosterBtn').onclick=()=>{if(started){toast('游戏中不能修改名单','fail');return}const names=$('rosterText').value.split(/[
+,，、]+/).map(s=>s.trim()).filter(Boolean);if(!names.length){alert('名单不能为空。');return}roster=[...new Set(names)];selected=selected.filter(n=>roster.includes(n));syncPlayers(false);saveRoster();renderAll()};
+  $('restoreRosterBtn').onclick=()=>{if(started)return;roster=DEFAULT_ROSTER.slice();selected=[];players=[];saveRoster();renderAll()};
+  $('quickBtn').onclick=()=>{if(started)return;selected=roster.slice(0,4);syncPlayers(false);renderAll()};
+  $('clearBtn').onclick=()=>{if(started)return;selected=[];players=[];current=0;renderAll()};
+
+  renderAll();addLog('🌟 选择学生和探险角色后，点击“开始新局”。');
+})();
+</script>
+</body>
+</html>
