@@ -14,4 +14,687 @@ function progressValue(p){return mode==="island"?p.island.fragments+p.island.key
 function renderModes(){$("modes").innerHTML=Object.entries(INFO).map(([k,v])=>'<button class="mode '+(mode===k?'active':'')+'" onclick="setMode(\''+k+'\')"><span>'+v.icon+'</span><strong>'+v.title+'</strong><small>'+v.sub+'</small></button>').join('')}function renderScores(){if(!players.length){$("scores").innerHTML='<p class="score-empty">选择学生并开始后，这里显示当前游戏的独立分数。</p>';return}$("scores").innerHTML='<span class="score-note">'+INFO[mode].icon+' '+INFO[mode].title+'</span>'+players.map((p,i)=>'<button class="chip '+(i===turn[mode]?'current':'')+'" style="--pc:'+p.color+'" onclick="selectPlayer('+i+')"><span class="avatar">'+p.name[0]+'</span><span><b>'+p.name+'</b><small>'+score(p)+' 分</small></span>'+(i===turn[mode]?'<em class="now">现在</em>':'')+'</button>').join('')+'<button class="settle" onclick="showResults()">🏆 一键结算</button>'}function renderStudents(){$("count").textContent=selected.length+'人';$("students").innerHTML=STUDENTS.map(n=>'<button class="student '+(selected.includes(n)?'on':'')+'" '+(started?'disabled':'')+' onclick="toggleStudent(\''+n+'\')"><i>'+(selected.includes(n)?'✓':n[0])+'</i>'+n+'</button>').join('');$("startArea").innerHTML=!started?'<button class="btn coral wide" onclick="startGame()">开始新局</button>':'<div class="turn" style="--pc:'+current().color+'"><small>'+INFO[mode].title+'现在轮到</small><strong>'+current().name+'</strong><p>完成一次有效行动后自动换人</p></div>'}
 function renderIsland(){const v={shell:"🐚",coin:"🪙",gem:"💎",map:"🗺️",key:"🗝️"},p=current(),done=island.every(x=>x.open);return '<div class="island-layout"><div class="island-map"><div class="island"><span class="deco palm">🌴</span><span class="deco mountain">⛰️</span><span class="deco ruin">🏛️</span><div class="tiles">'+island.map(t=>'<button class="tile '+(t.open?'open '+(t.points>=4?'rare':''):'')+'" '+(t.open?'disabled':'')+' onclick="explore('+t.id+')">'+(t.open?'<span>'+v[t.reward]+'</span><small>+'+t.points+'</small>':'<span>☁️</span><small>探索</small>')+'</button>').join('')+'</div></div></div><div class="instructions"><span class="step">01</span><h3>选择一块迷雾</h3><p>点击一块还没有打开的迷雾，看看里面藏着什么。</p><div class="mini"><span>🧩 '+(p?p.island.fragments:0)+' 碎片</span><span>🗝️ '+(p?p.island.keys:0)+' 钥匙</span></div>'+(done?'<div class="round-done">🎉 本轮探索完成！<br>刷新后可继续下一轮</div>':'')+'<button class="btn yellow wide" onclick="refreshIsland()">🔄 刷新岛屿</button></div></div>'}function renderRobot(){const p=current()||newPlayer("?",0);return '<div class="robot-layout"><div class="factory"><div class="robot s'+p.robot.stage+'">🤖</div><div class="meter"><i style="width:'+Math.min(100,p.robot.energy*22)+'%"></i></div><p>阶段 '+p.robot.stage+' / 3 · 升级能量 '+p.robot.energy+'</p></div><div class="controls"><span class="step">02</span><h3>打开神秘零件箱</h3><p>找到零件立即得分，组装成完整机器人再奖励5分。</p><div class="crates">'+crates.map(b=>'<button class="crate '+(b.open?'open':'')+'" '+(b.open?'disabled':'')+' onclick="openCrate('+b.id+')">'+(b.open?'<span>'+(b.reward==="energy"?'🔋':PARTS[b.reward][0])+'</span><small>+ '+b.points+'分</small>':'?')+'</button>').join('')+'</div><div class="inventory">'+Object.entries(PARTS).map(([k,v])=>'<span class="part '+(p.robot.parts.includes(k)?'owned':'')+'">'+v[0]+'<small>'+v[1]+' · '+v[2]+'分</small></span>').join('')+'</div><div class="dual"><button class="btn soft" onclick="charge()">⚡ 补充升级能量</button><button class="btn coral" onclick="upgradeRobot()">⬆ 升级机器人</button></div><button class="btn yellow wide" style="margin-top:9px" onclick="refreshCrates()">🔄 换一批零件箱</button></div></div>'}function renderCastle(){const p=current()||newPlayer("?",0),lv=LEVELS[p.castle.stage],next=LEVELS[p.castle.stage+1];return '<div class="castle-layout"><div class="scene"><span class="sun">☀️</span><span class="cloud c1">☁️</span><span class="cloud c2">☁️</span><div class="building"><span>'+lv.icon+'</span><strong>'+lv.name+'</strong></div></div><div class="controls"><span class="step">03</span><h3>收集材料，建造升级</h3><p>选择材料进行收集，数量足够后就可以升级城堡。</p><div class="mini"><span>🪵 '+p.castle.wood+'</span><span>🪨 '+p.castle.stone+'</span><span>💎 '+p.castle.crystal+'</span></div><div class="resources"><button class="res" onclick="gather(\'wood\')"><span>🪵</span><b>收集木材</b><small>常见材料</small></button><button class="res" onclick="gather(\'stone\')"><span>🪨</span><b>收集石头</b><small>常见材料</small></button><button class="res" onclick="gather(\'crystal\')"><span>💎</span><b>寻找水晶</b><small>稀有材料</small></button></div><button class="btn coral wide" style="margin-top:10px" onclick="buildCastle()">'+(next?'建造 '+next.name+'<br><small>木'+next.cost.wood+' / 石'+next.cost.stone+' / 晶'+next.cost.crystal+'</small>':'星光王国已经完成 ✨')+'</button></div></div>'}
 function renderProgress(){const p=current();if(!p){$("progress").innerHTML="";return}const rows=mode==="island"?[["地图碎片",p.island.fragments],["古堡钥匙",p.island.keys],["已探索",p.island.explored+'格']]:mode==="robot"?[["机器人阶段",p.robot.stage+'/3'],["已获零件",p.robot.parts.length+'/5'],["升级能量",p.robot.energy]]:[["城堡阶段",p.castle.stage+'/4'],["木材",p.castle.wood],["石头 / 水晶",p.castle.stone+' / '+p.castle.crystal]];$("progress").innerHTML='<div class="progress" style="--pc:'+p.color+'"><div class="phead"><span class="avatar" style="--pc:'+p.color+'">'+p.name[0]+'</span><div><small>当前玩家</small><b>'+p.name+'</b></div><b>'+score(p)+' 分</b></div><section>'+rows.map(r=>'<p><span>'+r[0]+'</span><strong>'+r[1]+'</strong></p>').join('')+'</section></div>'}function render(){renderModes();renderScores();renderStudents();$("gameTitle").textContent=INFO[mode].icon+' '+INFO[mode].title;$("gameBody").innerHTML=mode==="island"?renderIsland():mode==="robot"?renderRobot():renderCastle();$("toast").textContent=toasts[mode];renderProgress();$("history").innerHTML=logs[mode].map((h,i)=>'<p><i>'+(i+1)+'</i>'+h+'</p>').join('');$("soundBtn").textContent=soundOn?'🔊 音效开':'🔇 音效关'}$("soundBtn").onclick=()=>{soundOn=!soundOn;render()};$("rulesBtn").onclick=showRules;$("nextTop").onclick=()=>nextPlayer(true);$("nextSide").onclick=()=>nextPlayer(true);$("restartBtn").onclick=restartCurrent;$("reselectBtn").onclick=reselect;island=makeIsland();crates=makeCrates();render();
+</script>
+<style>
+.modes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.extra-layout{min-height:570px;display:grid;grid-template-columns:.9fr 1.1fr;gap:19px;align-items:center}
+.feature-scene{min-height:470px;border-radius:29px;display:grid;place-items:center;align-content:center;text-align:center;padding:24px;position:relative;overflow:hidden;background:linear-gradient(155deg,#dff8ff,#fff3c6);box-shadow:inset 0 0 0 7px #ffffff9c}
+.feature-scene.dino-bg{background:linear-gradient(#a9e7ff 0 61%,#7dcc67 61%)}
+.feature-scene.garden-bg{background:linear-gradient(#b8eaff 0 58%,#85cf68 58%)}
+.feature-scene.chef-bg{background:linear-gradient(145deg,#fff1d2,#ffd5cf)}
+.feature-scene.sea-bg{background:linear-gradient(#70d8ef,#2c9bc6)}
+.feature-scene.train-bg{background:linear-gradient(#bfeaff 0 62%,#9ed66f 62%)}
+.feature-scene.pet-bg{background:linear-gradient(145deg,#ffe1ec,#e9dcff)}
+.hero-emoji{font-size:clamp(100px,13vw,170px);line-height:1;filter:drop-shadow(0 13px 0 #17324d20)}
+.hero-title{margin:12px 0 4px;padding:7px 14px;border-radius:999px;background:#fff;font-size:18px}
+.hero-sub{margin:0;color:#436079;font-weight:900}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+.action-card{border:2px solid var(--line);border-radius:15px;background:#fff;padding:12px 9px;cursor:pointer;font-weight:1000;min-height:68px}
+.action-card span{display:block;font-size:27px;margin-bottom:3px}
+.action-card small{display:block;color:var(--muted);font-size:10px}
+.mystery-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.mystery-box{aspect-ratio:1.1;border:0;border-radius:14px;background:#ffc75a;box-shadow:inset 0 0 0 4px #da8e2e,0 5px 0 #9c6225;cursor:pointer;font-size:25px;font-weight:1000}
+.mystery-box.open{background:#fff6da;box-shadow:inset 0 0 0 3px #e3d4a8}
+.mystery-box span,.mystery-box small{display:block}
+.mystery-box small{font-size:9px;margin-top:2px}
+.stock{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.stock span{padding:8px 10px;border-radius:11px;background:#eef4f6;font-size:11px;font-weight:1000}
+.recipe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.recipe{border:2px solid var(--line);border-radius:14px;background:#fff;padding:10px;cursor:pointer;font-weight:1000}
+.recipe small{display:block;margin-top:3px;color:var(--muted);font-size:9px}
+.collection{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.collection span{min-width:58px;padding:8px;border-radius:12px;background:#ffffffc9;font-size:23px}
+.collection small{display:block;font-size:9px;font-weight:1000}
+.track{width:86%;height:13px;border-radius:99px;background:#ffffff8f;overflow:hidden;margin:13px auto}
+.track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff806e,#ffd04c)}
+@media(max-width:850px){.extra-layout{grid-template-columns:1fr}.modes{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.modes{grid-template-columns:1fr}.mystery-grid{grid-template-columns:repeat(3,1fr)}.action-grid,.recipe-grid{grid-template-columns:1fr}}
+</style>
+<script>
+Object.assign(INFO,{
+  dino:{icon:"🦖",title:"恐龙公园",sub:"孵化恐龙，喂养长大"},
+  garden:{icon:"🌷",title:"神奇花园",sub:"收集材料，培育梦幻花朵"},
+  chef:{icon:"👩‍🍳",title:"美食小厨师",sub:"打开冰箱，完成美味食谱"},
+  aquarium:{icon:"🐠",title:"海底水族馆",sub:"潜水收集，完成水族箱"},
+  train:{icon:"🚂",title:"快递小火车",sub:"收集车厢，装好后发车"},
+  pet:{icon:"🐾",title:"魔法宠物屋",sub:"照顾宠物，陪伴它成长"}
+});
+Object.assign(RULES,{
+  dino:["先孵化一颗神秘恐龙蛋，孵化时立即得1至3分。","寻找食物时立即获得食物和分数。","食物足够后可以让恐龙成长：成长为少年得3分，成长为成年恐龙得5分。","成年后可以领取新恐龙蛋，继续培养下一只。"],
+  garden:["打开神秘园艺包，随机获得种子、水滴、阳光或肥料，并立即得分。","材料足够时点击“培育花朵”，依次长成小苗、花朵和梦幻花朵。","三次成长分别奖励2分、3分和5分。","梦幻花朵完成后可以开启新花圃。"],
+  chef:["打开神秘冰箱领取食材，每种食材会立即获得1至3分。","根据食谱收集面包、鸡蛋、牛奶、水果和奶酪。","材料足够时点击对应菜品进行制作，完成一道菜额外得5分。","冰箱全部打开后，可以点击“补充冰箱”继续游戏。"],
+  aquarium:["选择一个还没有探索的潜水点，揭晓海洋生物并立即得分。","1至3分比较常见，4至5分为稀有发现。","收集四种不同的海洋生物后，可以完成一个水族箱并额外得5分。","潜水点全部打开后，可以刷新海域继续探索。"],
+  train:["打开神秘包裹，收集车头、车厢、乘客、货物和燃料，并立即得分。","发车需要1个车头、3节车厢、1名乘客、1份货物和2格燃料。","成功发车额外得5分，并记录一列完成的小火车。","包裹全部打开后，可以点击“补充包裹”继续收集。"],
+  pet:["先从小狗、小猫、小兔和小龙中选择一只宠物，领养得1分。","喂食、洗澡、玩耍或训练可以获得爱心和分数。","积满3颗爱心成长为少年宠物，奖励3分；再积满5颗爱心成为成年宠物，奖励5分。","成年后可以领养新宠物继续培养。"]
+});
+
+const DINO_TYPES=[
+  {id:"long",icon:"🦕",name:"长颈龙",points:1},
+  {id:"tri",icon:"🦏",name:"三角龙",points:2},
+  {id:"wing",icon:"🪽",name:"翼龙",points:2},
+  {id:"rex",icon:"🦖",name:"霸王龙",points:3}
+];
+const GARDEN_ITEMS={
+  seed:{icon:"🌰",name:"种子",points:1},
+  water:{icon:"💧",name:"水滴",points:1},
+  sun:{icon:"☀️",name:"阳光",points:2},
+  fertilizer:{icon:"✨",name:"魔法肥料",points:3}
+};
+const CHEF_ITEMS={
+  bread:{icon:"🍞",name:"面包",points:1},
+  egg:{icon:"🥚",name:"鸡蛋",points:1},
+  milk:{icon:"🥛",name:"牛奶",points:2},
+  fruit:{icon:"🍓",name:"水果",points:2},
+  cheese:{icon:"🧀",name:"奶酪",points:3}
+};
+const RECIPES={
+  sandwich:{icon:"🥪",name:"三明治",need:{bread:2,cheese:1}},
+  pizza:{icon:"🍕",name:"披萨",need:{bread:1,cheese:2,egg:1}},
+  cake:{icon:"🎂",name:"水果蛋糕",need:{egg:2,milk:1,fruit:1}},
+  icecream:{icon:"🍨",name:"水果冰激凌",need:{milk:2,fruit:2}}
+};
+const SEA_ITEMS={
+  fish:{icon:"🐟",name:"小鱼",points:1},
+  star:{icon:"⭐",name:"海星",points:1},
+  turtle:{icon:"🐢",name:"海龟",points:2},
+  coral:{icon:"🪸",name:"珊瑚",points:2},
+  pearl:{icon:"🦪",name:"珍珠",points:3},
+  shell:{icon:"🐚",name:"彩虹贝壳",points:4},
+  gold:{icon:"🐡",name:"金色河豚",points:5}
+};
+const TRAIN_ITEMS={
+  engine:{icon:"🚂",name:"车头",points:2},
+  carriage:{icon:"🚃",name:"车厢",points:1},
+  passenger:{icon:"🧒",name:"乘客",points:2},
+  cargo:{icon:"📦",name:"货物",points:2},
+  fuel:{icon:"⛽",name:"燃料",points:1}
+};
+const PET_TYPES={
+  dog:{icon:"🐶",name:"小狗"},
+  cat:{icon:"🐱",name:"小猫"},
+  rabbit:{icon:"🐰",name:"小兔"},
+  dragon:{icon:"🐲",name:"小龙"}
+};
+const PET_ACTIONS={
+  feed:{icon:"🥕",name:"喂食"},
+  bath:{icon:"🫧",name:"洗澡"},
+  play:{icon:"🎾",name:"玩耍"},
+  train:{icon:"🎯",name:"训练"}
+};
+const EXTRA_KEYS=["dino","garden","chef","aquarium","train","pet"];
+
+function freshDino(){return{type:null,stage:0,food:0,adults:0}}
+function freshGarden(flowers=0){return{seed:0,water:0,sun:0,fertilizer:0,stage:0,flowers}}
+function freshChef(dishes=0){return{items:{bread:0,egg:0,milk:0,fruit:0,cheese:0},dishes}}
+function freshAquarium(tanks=0){return{creatures:[],found:0,tanks}}
+function freshTrain(trains=0){return{items:{engine:0,carriage:0,passenger:0,cargo:0,fuel:0},trains}}
+function freshPet(adults=0){return{type:null,stage:0,hearts:0,adults,accessories:0}}
+
+const originalNewPlayer=newPlayer;
+newPlayer=function(name,i){
+  const p=originalNewPlayer(name,i);
+  Object.assign(p.scores,{dino:0,garden:0,chef:0,aquarium:0,train:0,pet:0});
+  p.dino=freshDino();
+  p.garden=freshGarden();
+  p.chef=freshChef();
+  p.aquarium=freshAquarium();
+  p.train=freshTrain();
+  p.pet=freshPet();
+  return p;
+};
+
+let chefBoxes=[],seaSpots=[],trainBoxes=[];
+function makeChefBoxes(){
+  return shuffle(["bread","bread","bread","egg","egg","egg","milk","milk","fruit","fruit","cheese","cheese"])
+    .map((reward,id)=>({id,reward,open:false,points:CHEF_ITEMS[reward].points}));
+}
+function randomSeaReward(){
+  const r=Math.random();
+  return r<.28?"fish":r<.52?"star":r<.70?"turtle":r<.86?"coral":r<.96?"pearl":r<.99?"shell":"gold";
+}
+function makeSeaSpots(){
+  return Array.from({length:12},(_,id)=>{const reward=randomSeaReward();return{id,reward,open:false,points:SEA_ITEMS[reward].points}});
+}
+function makeTrainBoxes(){
+  return shuffle(["engine","engine","carriage","carriage","carriage","carriage","carriage","passenger","passenger","cargo","fuel","fuel"])
+    .map((reward,id)=>({id,reward,open:false,points:TRAIN_ITEMS[reward].points}));
+}
+function resetExtraBoards(){chefBoxes=makeChefBoxes();seaSpots=makeSeaSpots();trainBoxes=makeTrainBoxes()}
+function initialToast(k){
+  return {
+    island:"先选择小朋友，再开始探险吧！",robot:"先选择小朋友，再开始组装吧！",castle:"先选择小朋友，再开始建造吧！",
+    dino:"先选择小朋友，再开始孵化恐龙吧！",garden:"先选择小朋友，再开始培育花园吧！",chef:"先选择小朋友，再开始制作美食吧！",
+    aquarium:"先选择小朋友，再开始海底探索吧！",train:"先选择小朋友，再开始组装火车吧！",pet:"先选择小朋友，再开始领养宠物吧！"
+  }[k];
+}
+
+startGame=function(){
+  if(!selected.length){toasts[mode]="请先选择至少一位小朋友";render();return}
+  const ordered=STUDENTS.filter(n=>selected.includes(n));
+  players=ordered.map(newPlayer);
+  turn={};
+  Object.keys(INFO).forEach(k=>turn[k]=0);
+  started=true;
+  island=makeIsland();
+  crates=makeCrates();
+  resetExtraBoards();
+  Object.keys(INFO).forEach(k=>{
+    toasts[k]=ordered[0]+" 先开始，选择一个行动吧！";
+    logs[k]=[INFO[k].title+"开始，轮到 "+ordered[0]];
+  });
+  tone("good");
+  render();
+};
+
+reselect=function(){
+  selected=[];
+  players=[];
+  started=false;
+  turn={};
+  Object.keys(INFO).forEach(k=>turn[k]=0);
+  island=makeIsland();
+  crates=makeCrates();
+  resetExtraBoards();
+  toasts={};
+  logs={};
+  Object.keys(INFO).forEach(k=>{toasts[k]=initialToast(k);logs[k]=["等待游戏开始…"]});
+  $("modal").innerHTML="";
+  render();
+};
+
+function resetPlayerMode(p,k){
+  p.scores[k]=0;
+  if(k==="island")p.island={fragments:0,keys:0,explored:0};
+  else if(k==="robot")p.robot={parts:[],energy:0,stage:0};
+  else if(k==="castle")p.castle={wood:0,stone:0,crystal:0,stage:0};
+  else if(k==="dino")p.dino=freshDino();
+  else if(k==="garden")p.garden=freshGarden();
+  else if(k==="chef")p.chef=freshChef();
+  else if(k==="aquarium")p.aquarium=freshAquarium();
+  else if(k==="train")p.train=freshTrain();
+  else if(k==="pet")p.pet=freshPet();
+}
+restartCurrent=function(){
+  if(!guard())return;
+  players.forEach(p=>resetPlayerMode(p,mode));
+  if(mode==="island")island=makeIsland();
+  else if(mode==="robot")crates=makeCrates();
+  else if(mode==="chef")chefBoxes=makeChefBoxes();
+  else if(mode==="aquarium")seaSpots=makeSeaSpots();
+  else if(mode==="train")trainBoxes=makeTrainBoxes();
+  turn[mode]=0;
+  logs[mode]=[INFO[mode].title+"已重新开始"];
+  toasts[mode]="分数和进度已清零，轮到 "+current().name;
+  tone("good");
+  render();
+};
+
+function adoptDino(){
+  if(!guard())return;
+  const p=current();
+  if(p.dino.type){announce("这只恐龙已经孵化，请先继续喂养它");render();return}
+  const d=DINO_TYPES[Math.floor(Math.random()*DINO_TYPES.length)];
+  finish("孵出了"+d.name+" +"+d.points+"分",x=>{x.dino.type=d.id;x.dino.stage=1;x.scores.dino+=d.points},d.points>=3?"rare":"good");
+}
+function findDinoFood(){
+  if(!guard())return;
+  const p=current();
+  if(!p.dino.type){announce("请先孵化一颗恐龙蛋");render();return}
+  const a=Math.random()<.25?2:1;
+  finish("找到恐龙食物 "+a+"份，+"+a+"分",x=>{x.dino.food+=a;x.scores.dino+=a},a===2?"rare":"good");
+}
+function growDino(){
+  if(!guard())return;
+  const p=current();
+  if(!p.dino.type){announce("请先孵化一颗恐龙蛋");render();return}
+  if(p.dino.stage>=3){announce("成年恐龙已经完成，可以领取新恐龙蛋");render();return}
+  const need=p.dino.stage===1?2:3;
+  if(p.dino.food<need){announce("还需要 "+need+"份食物才能成长");render();return}
+  const next=p.dino.stage+1,pts=next===3?5:3;
+  finish((next===3?"恐龙成长为成年形态":"恐龙成长为少年形态")+" +"+pts+"分",x=>{x.dino.food-=need;x.dino.stage=next;x.scores.dino+=pts;if(next===3)x.dino.adults++},next===3?"rare":"good");
+}
+function newDinoEgg(){
+  if(!guard())return;
+  const p=current();
+  if(p.dino.stage<3){announce("恐龙成年后才能领取新的恐龙蛋");render();return}
+  finish("领取了一颗新的神秘恐龙蛋",x=>{const adults=x.dino.adults;x.dino=freshDino();x.dino.adults=adults},"move");
+}
+
+function collectGarden(){
+  if(!guard())return;
+  const pool=["seed","water","water","sun","sun","fertilizer"],key=pool[Math.floor(Math.random()*pool.length)],item=GARDEN_ITEMS[key];
+  const amount=(key==="water"||key==="sun")&&Math.random()<.22?2:1;
+  const pts=key==="fertilizer"?3:amount*item.points;
+  finish("获得"+item.name+" "+amount+"份，+"+pts+"分",p=>{p.garden[key]+=amount;p.scores.garden+=pts},pts>=3?"rare":"good");
+}
+function growGarden(){
+  if(!guard())return;
+  const p=current(),needs=[
+    {seed:1,water:1,sun:0,fertilizer:0},
+    {seed:0,water:2,sun:1,fertilizer:0},
+    {seed:0,water:2,sun:2,fertilizer:1}
+  ],n=needs[p.garden.stage];
+  if(!n){announce("梦幻花朵已经完成，可以开启新花圃");render();return}
+  if(Object.keys(n).some(k=>p.garden[k]<n[k])){announce("材料还不够，继续打开园艺包吧");render();return}
+  const next=p.garden.stage+1,pts=[2,3,5][p.garden.stage];
+  finish((next===3?"培育出梦幻花朵":"花园成长到第"+next+"阶段")+" +"+pts+"分",x=>{Object.keys(n).forEach(k=>x.garden[k]-=n[k]);x.garden.stage=next;x.scores.garden+=pts;if(next===3)x.garden.flowers++},next===3?"rare":"good");
+}
+function newGarden(){
+  if(!guard())return;
+  const p=current();
+  if(p.garden.stage<3){announce("先完成当前的梦幻花朵");render();return}
+  finish("开启了一块新的花圃",x=>{const flowers=x.garden.flowers;x.garden=freshGarden(flowers)},"move");
+}
+
+function openChefBox(id){
+  if(!guard())return;
+  const b=chefBoxes.find(x=>x.id===id);
+  if(!b||b.open)return;
+  b.open=true;
+  const item=CHEF_ITEMS[b.reward];
+  finish("获得"+item.name+" +"+b.points+"分",p=>{p.chef.items[b.reward]++;p.scores.chef+=b.points},b.points>=3?"rare":"good");
+}
+function refreshChef(){if(!guard())return;chefBoxes=makeChefBoxes();announce("冰箱已经补充了新的神秘食材");render()}
+function cookDish(key){
+  if(!guard())return;
+  const p=current(),r=RECIPES[key];
+  if(Object.entries(r.need).some(([k,v])=>p.chef.items[k]<v)){announce("制作"+r.name+"的食材还不够");render();return}
+  finish("完成"+r.name+" +5分",x=>{Object.entries(r.need).forEach(([k,v])=>x.chef.items[k]-=v);x.chef.dishes++;x.scores.chef+=5},"rare");
+}
+
+function dive(id){
+  if(!guard())return;
+  const s=seaSpots.find(x=>x.id===id);
+  if(!s||s.open)return;
+  s.open=true;
+  const item=SEA_ITEMS[s.reward];
+  finish("发现"+item.name+" +"+s.points+"分",p=>{p.aquarium.found++;if(!p.aquarium.creatures.includes(s.reward))p.aquarium.creatures.push(s.reward);p.scores.aquarium+=s.points},s.points>=4?"rare":"good");
+}
+function refreshSea(){if(!guard())return;seaSpots=makeSeaSpots();announce("新的海域已经开放");render()}
+function completeAquarium(){
+  if(!guard())return;
+  const p=current();
+  if(p.aquarium.creatures.length<4){announce("还需要收集4种不同的海洋生物");render();return}
+  finish("完成一个漂亮的水族箱 +5分",x=>{x.aquarium.tanks++;x.aquarium.creatures=[];x.scores.aquarium+=5},"rare");
+}
+
+function openTrainBox(id){
+  if(!guard())return;
+  const b=trainBoxes.find(x=>x.id===id);
+  if(!b||b.open)return;
+  b.open=true;
+  const item=TRAIN_ITEMS[b.reward];
+  finish("获得"+item.name+" +"+b.points+"分",p=>{p.train.items[b.reward]++;p.scores.train+=b.points},b.points>=3?"rare":"good");
+}
+function refreshTrain(){if(!guard())return;trainBoxes=makeTrainBoxes();announce("新的快递包裹已经送到");render()}
+function launchTrain(){
+  if(!guard())return;
+  const p=current(),n={engine:1,carriage:3,passenger:1,cargo:1,fuel:2};
+  if(Object.entries(n).some(([k,v])=>p.train.items[k]<v)){announce("车头1、车厢3、乘客1、货物1、燃料2才能发车");render();return}
+  finish("快递小火车成功发车 +5分",x=>{Object.entries(n).forEach(([k,v])=>x.train.items[k]-=v);x.train.trains++;x.scores.train+=5},"rare");
+}
+
+function adoptPet(key){
+  if(!guard())return;
+  const p=current(),pet=PET_TYPES[key];
+  if(p.pet.type){announce("已经有宠物了，先陪它长大吧");render();return}
+  finish("领养了"+pet.name+" +1分",x=>{x.pet.type=key;x.scores.pet+=1},"good");
+}
+function carePet(key){
+  if(!guard())return;
+  const p=current();
+  if(!p.pet.type){announce("请先选择一只宠物");render();return}
+  if(p.pet.stage>=2){announce("宠物已经成年，可以领养新宠物");render();return}
+  const a=Math.random()<.25?2:1,bonus=Math.random()<.12;
+  finish(PET_ACTIONS[key].name+"获得"+a+"颗爱心，+"+a+"分"+(bonus?"，还找到一个小装饰！":""),x=>{x.pet.hearts+=a;x.scores.pet+=a;if(bonus)x.pet.accessories++},a===2||bonus?"rare":"good");
+}
+function growPet(){
+  if(!guard())return;
+  const p=current();
+  if(!p.pet.type){announce("请先选择一只宠物");render();return}
+  if(p.pet.stage>=2){announce("宠物已经成年，可以领养新宠物");render();return}
+  const need=p.pet.stage===0?3:5;
+  if(p.pet.hearts<need){announce("还需要 "+need+"颗爱心才能成长");render();return}
+  const next=p.pet.stage+1,pts=next===2?5:3;
+  finish((next===2?"宠物成长为成年形态":"宠物成长为少年形态")+" +"+pts+"分",x=>{x.pet.hearts-=need;x.pet.stage=next;x.scores.pet+=pts;if(next===2)x.pet.adults++},next===2?"rare":"good");
+}
+function newPet(){
+  if(!guard())return;
+  const p=current();
+  if(p.pet.stage<2){announce("宠物成年后才能领养新宠物");render();return}
+  finish("准备领养一只新的魔法宠物",x=>{const adults=x.pet.adults;x.pet=freshPet(adults)},"move");
+}
+
+function renderDino(){
+  const p=current()||newPlayer("?",0),d=p.dino,info=DINO_TYPES.find(x=>x.id===d.type),stageNames=["神秘恐龙蛋","恐龙幼崽","少年恐龙","成年恐龙"];
+  return `<div class="extra-layout"><div class="feature-scene dino-bg"><div class="hero-emoji">${info?info.icon:"🥚"}</div><strong class="hero-title">${info?info.name:"等待孵化"}</strong><p class="hero-sub">${stageNames[d.stage]} · 食物 ${d.food}份</p><div class="track"><i style="width:${Math.min(100,d.food/3*100)}%"></i></div><div class="collection"><span>🏅<small>成年 ${d.adults}只</small></span></div></div><div class="controls"><span class="step">04</span><h3>孵化、喂养、成长</h3><p>先孵化恐龙蛋，再寻找食物让它成长。</p><div class="action-grid"><button class="action-card" onclick="adoptDino()"><span>🥚</span>孵化恐龙蛋<small>首次获得1–3分</small></button><button class="action-card" onclick="findDinoFood()"><span>🥩</span>寻找食物<small>立即获得食物和分数</small></button><button class="action-card" onclick="growDino()"><span>⬆️</span>恐龙成长<small>少年+3 / 成年+5</small></button><button class="action-card" onclick="newDinoEgg()"><span>🪺</span>领取新蛋<small>成年后继续下一只</small></button></div></div></div>`;
+}
+function renderGarden(){
+  const p=current()||newPlayer("?",0),g=p.garden,icons=["🪴","🌱","🌷","🌈🌸"],names=["空花盆","绿色小苗","漂亮花朵","梦幻花朵"];
+  return `<div class="extra-layout"><div class="feature-scene garden-bg"><div class="hero-emoji">${icons[g.stage]}</div><strong class="hero-title">${names[g.stage]}</strong><p class="hero-sub">已经完成 ${g.flowers} 朵梦幻花</p></div><div class="controls"><span class="step">05</span><h3>打开园艺包，培育花朵</h3><p>园艺包里的材料是随机的，打开后立即计分。</p><div class="stock"><span>🌰 ${g.seed}</span><span>💧 ${g.water}</span><span>☀️ ${g.sun}</span><span>✨ ${g.fertilizer}</span></div><div class="action-grid"><button class="action-card" onclick="collectGarden()"><span>🎒</span>打开神秘园艺包<small>随机获得一种材料</small></button><button class="action-card" onclick="growGarden()"><span>🌱</span>培育花朵<small>成长奖励2 / 3 / 5分</small></button></div><button class="btn yellow wide" onclick="newGarden()">🌷 开启新花圃</button></div></div>`;
+}
+function renderChef(){
+  const p=current()||newPlayer("?",0),c=p.chef;
+  return `<div class="extra-layout"><div class="feature-scene chef-bg"><div class="hero-emoji">🍳</div><strong class="hero-title">美食厨房</strong><p class="hero-sub">已经完成 ${c.dishes} 道菜</p><div class="collection">${Object.entries(CHEF_ITEMS).map(([k,v])=>`<span>${v.icon}<small>${c.items[k]}份</small></span>`).join("")}</div></div><div class="controls"><span class="step">06</span><h3>打开冰箱，收集食材</h3><div class="mystery-grid">${chefBoxes.map(b=>`<button class="mystery-box ${b.open?"open":""}" ${b.open?"disabled":""} onclick="openChefBox(${b.id})">${b.open?`<span>${CHEF_ITEMS[b.reward].icon}</span><small>+${b.points}分</small>`:"?"}</button>`).join("")}</div><div class="recipe-grid">${Object.entries(RECIPES).map(([k,r])=>`<button class="recipe" onclick="cookDish('${k}')">${r.icon} ${r.name}<small>${Object.entries(r.need).map(([a,n])=>CHEF_ITEMS[a].icon+n).join(" · ")} · 完成+5</small></button>`).join("")}</div><button class="btn yellow wide" style="margin-top:9px" onclick="refreshChef()">🔄 补充冰箱</button></div></div>`;
+}
+function renderAquarium(){
+  const p=current()||newPlayer("?",0),a=p.aquarium;
+  return `<div class="extra-layout"><div class="feature-scene sea-bg"><div class="hero-emoji">🐠</div><strong class="hero-title">我的水族馆</strong><p class="hero-sub">完成 ${a.tanks} 个水族箱</p><div class="collection">${a.creatures.length?a.creatures.map(k=>`<span>${SEA_ITEMS[k].icon}<small>${SEA_ITEMS[k].name}</small></span>`).join(""):"<span>🌊<small>等待发现</small></span>"}</div></div><div class="controls"><span class="step">07</span><h3>选择一个神秘潜水点</h3><div class="mystery-grid">${seaSpots.map(s=>`<button class="mystery-box ${s.open?"open":""}" ${s.open?"disabled":""} onclick="dive(${s.id})">${s.open?`<span>${SEA_ITEMS[s.reward].icon}</span><small>+${s.points}分</small>`:"🌊"}</button>`).join("")}</div><div class="dual"><button class="btn coral" onclick="completeAquarium()">🐠 完成水族箱 +5</button><button class="btn yellow" onclick="refreshSea()">🔄 刷新海域</button></div></div></div>`;
+}
+function renderTrain(){
+  const p=current()||newPlayer("?",0),t=p.train.items,cars=Math.min(3,t.carriage);
+  return `<div class="extra-layout"><div class="feature-scene train-bg"><div class="hero-emoji" style="font-size:90px">🚂${"🚃".repeat(cars)}</div><strong class="hero-title">快递小火车</strong><p class="hero-sub">已经成功发车 ${p.train.trains} 列</p><div class="collection">${Object.entries(TRAIN_ITEMS).map(([k,v])=>`<span>${v.icon}<small>${t[k]}个</small></span>`).join("")}</div></div><div class="controls"><span class="step">08</span><h3>打开包裹，组装发车</h3><div class="mystery-grid">${trainBoxes.map(b=>`<button class="mystery-box ${b.open?"open":""}" ${b.open?"disabled":""} onclick="openTrainBox(${b.id})">${b.open?`<span>${TRAIN_ITEMS[b.reward].icon}</span><small>+${b.points}分</small>`:"📦"}</button>`).join("")}</div><button class="btn coral wide" onclick="launchTrain()">🚂 组装完成，出发！+5分</button><button class="btn yellow wide" style="margin-top:9px" onclick="refreshTrain()">🔄 补充包裹</button></div></div>`;
+}
+function renderPet(){
+  const p=current()||newPlayer("?",0),pet=p.pet,info=pet.type?PET_TYPES[pet.type]:null,stageNames=["宠物宝宝","少年宠物","成年宠物"];
+  return `<div class="extra-layout"><div class="feature-scene pet-bg"><div class="hero-emoji">${info?info.icon:"🏠"}</div><strong class="hero-title">${info?info.name:"等待领养"}</strong><p class="hero-sub">${info?stageNames[pet.stage]:"选择你喜欢的宠物"} · ❤️ ${pet.hearts}</p><div class="collection"><span>🏅<small>成年 ${pet.adults}只</small></span><span>🎀<small>装饰 ${pet.accessories}个</small></span></div></div><div class="controls"><span class="step">09</span><h3>${info?"照顾宠物，陪它成长":"选择一只魔法宠物"}</h3>${!info?`<div class="action-grid">${Object.entries(PET_TYPES).map(([k,v])=>`<button class="action-card" onclick="adoptPet('${k}')"><span>${v.icon}</span>${v.name}<small>领养+1分</small></button>`).join("")}</div>`:`<div class="action-grid">${Object.entries(PET_ACTIONS).map(([k,v])=>`<button class="action-card" onclick="carePet('${k}')"><span>${v.icon}</span>${v.name}<small>获得爱心和分数</small></button>`).join("")}</div><div class="dual"><button class="btn coral" onclick="growPet()">⬆️ 宠物成长</button><button class="btn yellow" onclick="newPet()">🐾 领养新宠物</button></div>`}</div></div>`;
+}
+
+progressValue=function(p){
+  const map={
+    island:()=>p.island.fragments+p.island.keys,
+    robot:()=>p.robot.stage*3+p.robot.parts.length,
+    castle:()=>p.castle.stage*3,
+    dino:()=>p.dino.adults*10+p.dino.stage*3,
+    garden:()=>p.garden.flowers*10+p.garden.stage*3,
+    chef:()=>p.chef.dishes*10,
+    aquarium:()=>p.aquarium.tanks*10+p.aquarium.creatures.length,
+    train:()=>p.train.trains*10,
+    pet:()=>p.pet.adults*10+p.pet.stage*3
+  };
+  return map[mode]();
+};
+renderProgress=function(){
+  const p=current();
+  if(!p){$("progress").innerHTML="";return}
+  const rows={
+    island:[["地图碎片",p.island.fragments],["古堡钥匙",p.island.keys],["已探索",p.island.explored+"格"]],
+    robot:[["机器人阶段",p.robot.stage+"/3"],["已获零件",p.robot.parts.length+"/5"],["升级能量",p.robot.energy]],
+    castle:[["城堡阶段",p.castle.stage+"/4"],["木材",p.castle.wood],["石头 / 水晶",p.castle.stone+" / "+p.castle.crystal]],
+    dino:[["成长阶段",p.dino.stage+"/3"],["恐龙食物",p.dino.food],["成年恐龙",p.dino.adults]],
+    garden:[["花朵阶段",p.garden.stage+"/3"],["梦幻花朵",p.garden.flowers],["现有材料",p.garden.seed+p.garden.water+p.garden.sun+p.garden.fertilizer]],
+    chef:[["完成菜品",p.chef.dishes],["现有食材",Object.values(p.chef.items).reduce((a,b)=>a+b,0)],["可选食谱",Object.keys(RECIPES).length]],
+    aquarium:[["不同生物",p.aquarium.creatures.length+"/4"],["全部发现",p.aquarium.found],["完成水族箱",p.aquarium.tanks]],
+    train:[["成功发车",p.train.trains],["车厢数量",p.train.items.carriage],["燃料",p.train.items.fuel]],
+    pet:[["成长阶段",p.pet.stage+"/2"],["爱心",p.pet.hearts],["成年宠物",p.pet.adults]]
+  }[mode];
+  $("progress").innerHTML='<div class="progress" style="--pc:'+p.color+'"><div class="phead"><span class="avatar" style="--pc:'+p.color+'">'+p.name[0]+'</span><div><small>当前玩家</small><b>'+p.name+'</b></div><b>'+score(p)+' 分</b></div><section>'+rows.map(r=>'<p><span>'+r[0]+'</span><strong>'+r[1]+'</strong></p>').join('')+'</section></div>';
+};
+showRules=function(){
+  $("modal").innerHTML='<div class="overlay"><div class="modal"><button class="close" onclick="closeResults()">×</button><div class="trophy">'+INFO[mode].icon+'</div><p class="eyebrow">HOW TO PLAY</p><h2>'+INFO[mode].title+'规则</h2><div style="text-align:left;margin:18px 0;display:grid;gap:9px">'+RULES[mode].map((r,i)=>'<div style="display:grid;grid-template-columns:28px 1fr;gap:9px;align-items:start;background:#f3f6f7;padding:11px;border-radius:13px"><strong style="width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ffc83d">'+(i+1)+'</strong><span style="line-height:1.55;font-weight:800">'+r+'</span></div>').join('')+'</div><div class="note" style="background:#eef9f6;padding:12px;border-radius:12px">九款游戏全部独立计分；“重开当前游戏”只会清零现在这一款。</div><button class="btn coral wide" style="margin-top:14px" onclick="closeResults()">知道了，开始玩</button></div></div>';
+};
+const EXTRA_RENDERERS={dino:renderDino,garden:renderGarden,chef:renderChef,aquarium:renderAquarium,train:renderTrain,pet:renderPet};
+render=function(){
+  renderModes();
+  renderScores();
+  renderStudents();
+  $("gameTitle").textContent=INFO[mode].icon+" "+INFO[mode].title;
+  $("gameBody").innerHTML=mode==="island"?renderIsland():mode==="robot"?renderRobot():mode==="castle"?renderCastle():EXTRA_RENDERERS[mode]();
+  $("toast").textContent=toasts[mode];
+  renderProgress();
+  $("history").innerHTML=logs[mode].map((h,i)=>'<p><i>'+(i+1)+'</i>'+h+'</p>').join("");
+  $("soundBtn").textContent=soundOn?"🔊 音效开":"🔇 音效关";
+};
+
+EXTRA_KEYS.forEach(k=>{turn[k]=0;toasts[k]=initialToast(k);logs[k]=["等待游戏开始…"]});
+resetExtraBoards();
+document.querySelector(".brand p").textContent="九款独立游戏 · 独立计分 · 随时切换";
+$("rulesBtn").onclick=showRules;
+$("restartBtn").onclick=restartCurrent;
+$("reselectBtn").onclick=reselect;
+render();
+</script>
+<style>
+.modes.menu-collapsed{display:block;margin-top:15px}
+.modes.menu-open{display:grid}
+.game-menu-toggle{grid-column:1/-1;width:100%;border:2px solid var(--navy);border-radius:16px;padding:12px 16px;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:1000;box-shadow:0 5px 0 #17324d22}
+.game-menu-toggle strong{display:flex;align-items:center;gap:8px;font-size:15px}
+.game-menu-toggle small{color:var(--muted);font-weight:900}
+.game-menu-toggle b{font-size:20px;transition:.18s}
+.menu-open .game-menu-toggle b{transform:rotate(180deg)}
+.set-complete{background:linear-gradient(145deg,#fff9d4,#e9fff6);border:4px solid var(--yellow)}
+.set-complete .trophy{font-size:72px}
+@media(max-width:560px){.game-menu-toggle small{display:none}}
+</style>
+<script>
+let gamesCollapsed=true;
+function toggleGameMenu(){gamesCollapsed=!gamesCollapsed;renderModes()}
+renderModes=function(){
+  const cards=Object.entries(INFO).map(([k,v])=>'<button class="mode '+(mode===k?'active':'')+'" onclick="setMode(\''+k+'\')"><span>'+v.icon+'</span><strong>'+v.title+'</strong><small>'+v.sub+'</small></button>').join("");
+  $("modes").className="modes "+(gamesCollapsed?"menu-collapsed":"menu-open");
+  $("modes").innerHTML='<button class="game-menu-toggle" onclick="toggleGameMenu()"><strong>'+INFO[mode].icon+' 当前游戏：'+INFO[mode].title+'</strong><small>'+(gamesCollapsed?'点击展开九款游戏':'选择后自动收起')+'</small><b>⌄</b></button>'+(gamesCollapsed?"":cards);
+};
+setMode=function(m){mode=m;gamesCollapsed=true;render()};
+
+function enough(have,need){return Object.entries(need).every(([k,v])=>have[k]>=v)}
+function completionInfo(k,p){
+  if(!p)return null;
+  if(k==="robot"){
+    const remainingEnergy=[6,5,3][p.robot.stage];
+    const allParts=new Set([...(p.robot.parts||[]),...(p.robot.installed||[])]);
+    if(remainingEnergy&&allParts.size>=5&&p.robot.energy>=remainingEnergy)return{key:"robot-full-set",icon:"🤖",title:"完整机器人的所有材料已集齐！",message:"5种不同零件和完成剩余升级所需的"+remainingEnergy+"格升级能量已经全部收齐。"};
+  }
+  if(k==="castle"){
+    const remaining=LEVELS.slice(p.castle.stage+1).reduce((sum,lv)=>({wood:sum.wood+lv.cost.wood,stone:sum.stone+lv.cost.stone,crystal:sum.crystal+lv.cost.crystal}),{wood:0,stone:0,crystal:0});
+    if(p.castle.stage<LEVELS.length-1&&enough(p.castle,remaining))return{key:"castle-full-set",icon:"🏰",title:"建成最终城堡的材料已全部集齐！",message:"完成所有剩余建造需要的木材、石头和水晶已经全部收齐。"};
+  }
+  if(k==="dino"&&p.dino.type&&p.dino.stage<3){
+    const remainingFood=p.dino.stage===1?5:3;
+    if(p.dino.food>=remainingFood)return{key:"dino-full-set",icon:"🦖",title:"养成成年恐龙的食物已全部集齐！",message:"完成所有剩余成长需要的"+remainingFood+"份食物已经全部收齐。"};
+  }
+  if(k==="garden"&&p.garden.stage<3){
+    const needs=[{seed:1,water:1,sun:0,fertilizer:0},{seed:0,water:2,sun:1,fertilizer:0},{seed:0,water:2,sun:2,fertilizer:1}];
+    const remaining=needs.slice(p.garden.stage).reduce((sum,n)=>({seed:sum.seed+n.seed,water:sum.water+n.water,sun:sum.sun+n.sun,fertilizer:sum.fertilizer+n.fertilizer}),{seed:0,water:0,sun:0,fertilizer:0});
+    if(enough(p.garden,remaining))return{key:"garden-full-set",icon:"🌷",title:"培育梦幻花朵的材料已全部集齐！",message:"完成所有剩余成长需要的种子、水滴、阳光和魔法肥料已经全部收齐。"};
+  }
+  if(k==="chef"){
+    const ready=Object.entries(RECIPES).find(([,r])=>enough(p.chef.items,r.need));
+    if(ready)return{key:"chef-"+ready[0],icon:ready[1].icon,title:ready[1].name+"食材完整收集一套！",message:"需要的食材已经集齐，可以点击食谱完成菜品并获得5分。"};
+  }
+  if(k==="aquarium"&&p.aquarium.creatures.length>=4)return{key:"aquarium-ready",icon:"🐠",title:"海洋生物完整收集一套！",message:"已经收集4种不同的海洋生物，可以完成水族箱并获得5分。"};
+  if(k==="train"){
+    const n={engine:1,carriage:3,passenger:1,cargo:1,fuel:2};
+    if(enough(p.train.items,n))return{key:"train-ready",icon:"🚂",title:"小火车零件完整收集一套！",message:"车头、车厢、乘客、货物和燃料都已集齐，可以发车并获得5分。"};
+  }
+  if(k==="pet"&&p.pet.type&&p.pet.stage<2){
+    const remainingHearts=p.pet.stage===0?8:5;
+    if(p.pet.hearts>=remainingHearts)return{key:"pet-full-set",icon:PET_TYPES[p.pet.type].icon,title:"养成成年宠物的爱心已全部集齐！",message:"完成所有剩余成长需要的"+remainingHearts+"颗爱心已经全部收齐。"};
+  }
+  return null;
+}
+function showSetPopup(p,info){
+  $("modal").innerHTML='<div class="overlay"><div class="modal set-complete"><button class="close" onclick="closeResults()">×</button><div class="trophy">'+info.icon+'</div><h2>'+info.title+'</h2><p style="line-height:1.65;font-weight:800;color:var(--muted)">'+p.name+'：'+info.message+'</p><button class="btn coral wide" style="margin-top:12px" onclick="closeResults()">知道了，继续游戏</button></div></div>';
+  tone("rare");
+}
+
+const finishBeforeSetNotice=finish;
+finish=function(msg,update,kind="good"){
+  const actionMode=mode,actor=current(),before=completionInfo(actionMode,actor);
+  finishBeforeSetNotice(msg,update,kind);
+  const after=completionInfo(actionMode,actor);
+  if(after&&(!before||before.key!==after.key))showSetPopup(actor,after);
+};
+const exploreBeforeSetNotice=explore;
+explore=function(id){
+  const wasDone=island.every(x=>x.open),actor=current();
+  exploreBeforeSetNotice(id);
+  if(!wasDone&&island.every(x=>x.open))showSetPopup(actor,{icon:"🗺️",title:"岛屿探索完整收集一套！",message:"本轮所有迷雾已经揭开，可以点击“刷新岛屿”开始新一轮。"});
+};
+
+render();
+</script>
+<style>
+.escape-goal{margin:12px 0;padding:13px;border:2px solid var(--yellow);border-radius:15px;background:#fff8d5;font-weight:900;line-height:1.5}
+.escape-goal strong{display:block;color:#9a5b00;font-size:15px}
+.escape-rewards{margin:10px 0;color:var(--muted);font-size:11px;line-height:1.55;font-weight:800}
+.escape-rewards b{color:var(--ink)}
+.escape-success{background:linear-gradient(145deg,#fff8c8,#dffff1);border:4px solid var(--mint)}
+</style>
+<script>
+INFO.island={icon:"🏝️",title:"荒岛逃生",sub:"收集地图和钥匙，成功逃离荒岛"};
+RULES.island=[
+  "目标非常明确：收集3张地图碎片和2把古堡钥匙，找到救援码头并逃离荒岛。",
+  "地图碎片和古堡钥匙是逃生必需品；贝壳、金币和宝石只是途中获得的分数奖励。",
+  "某位小朋友集齐3张地图碎片和2把钥匙后，系统会自动判定逃离成功并额外奖励5分。",
+  "成功逃离后会扣除本次使用的地图和钥匙，可以继续收集并完成下一次逃生。",
+  "岛上的迷雾全部打开后，点击“刷新岛屿”开始新一轮探索。"
+];
+
+makeIsland=function(){
+  return shuffle(["shell","shell","shell","coin","coin","gem","gem","map","map","map","key","key"])
+    .map((reward,id)=>({id,reward,points:rollPoints(),open:false}));
+};
+const newPlayerBeforeEscape=newPlayer;
+newPlayer=function(name,i){
+  const p=newPlayerBeforeEscape(name,i);
+  p.island.escapes=0;
+  return p;
+};
+const resetPlayerModeBeforeEscape=resetPlayerMode;
+resetPlayerMode=function(p,k){
+  resetPlayerModeBeforeEscape(p,k);
+  if(k==="island")p.island.escapes=0;
+};
+function showEscapePopup(p){
+  $("modal").innerHTML='<div class="overlay"><div class="modal escape-success"><button class="close" onclick="closeResults()">×</button><div class="trophy">⛵</div><p class="eyebrow">ESCAPE SUCCESS</p><h2>'+p.name+' 成功逃离荒岛！</h2><p style="font-size:20px;font-weight:1000;color:#21735f">逃生奖励 +5分</p><p class="note">本次使用的地图和钥匙已经扣除，可以继续挑战下一次逃生。</p><button class="btn coral wide" style="margin-top:12px" onclick="closeResults()">太棒了，继续游戏</button></div></div>';
+  tone("rare");
+}
+explore=function(id){
+  if(!guard())return;
+  const t=island.find(x=>x.id===id);
+  if(!t||t.open)return;
+  t.open=true;
+  const actor=current(),label={shell:"发现漂亮贝壳",coin:"找到金币",gem:"发现稀有宝石",map:"找到逃生地图碎片",key:"找到古堡钥匙"}[t.reward],rare=t.points>=4;
+  finish(label+" +"+t.points,p=>{
+    p.scores.island+=t.points;
+    p.island.fragments+=t.reward==="map"?1:0;
+    p.island.keys+=t.reward==="key"?1:0;
+    p.island.explored++;
+  },rare?"rare":"good");
+  if(actor.island.fragments>=3&&actor.island.keys>=2){
+    actor.island.fragments-=3;
+    actor.island.keys-=2;
+    actor.island.escapes++;
+    actor.scores.island+=5;
+    const msg=actor.name+" 成功逃离荒岛！奖励 +5分";
+    toasts.island=msg;
+    logs.island=[msg,...logs.island].slice(0,8);
+    render();
+    showEscapePopup(actor);
+  }else if(island.every(x=>x.open)){
+    showSetPopup(actor,{icon:"🏝️",title:"本轮荒岛探索完成！",message:"岛上的迷雾已经全部揭开，点击“刷新岛屿”继续寻找逃生地图和钥匙。"});
+  }
+};
+renderIsland=function(){
+  const v={shell:"🐚",coin:"🪙",gem:"💎",map:"🗺️",key:"🗝️"},p=current()||newPlayer("?",0),done=island.every(x=>x.open);
+  return '<div class="island-layout"><div class="island-map"><div class="island"><span class="deco palm">🌴</span><span class="deco mountain">⛰️</span><span class="deco ruin">🏛️</span><div class="tiles">'+island.map(t=>'<button class="tile '+(t.open?'open '+(t.points>=4?'rare':''):'')+'" '+(t.open?'disabled':'')+' onclick="explore('+t.id+')">'+(t.open?'<span>'+v[t.reward]+'</span><small>+'+t.points+'</small>':'<span>☁️</span><small>探索</small>')+'</button>').join('')+'</div></div></div><div class="instructions"><span class="step">01</span><h3>目标：逃离荒岛</h3><div class="escape-goal"><strong>⛵ 逃生条件</strong>收集 3 张地图碎片 ＋ 2 把古堡钥匙</div><div class="mini"><span>🗺️ '+p.island.fragments+' / 3</span><span>🗝️ '+p.island.keys+' / 2</span><span>⛵ 已逃离 '+p.island.escapes+' 次</span></div><p>集齐后系统自动判定逃离成功，并奖励5分。</p><div class="escape-rewards"><b>🐚 贝壳、🪙 金币、💎 宝石：</b>只增加分数，不是逃生物品。</div>'+(done?'<div class="round-done">🎉 本轮探索完成！<br>刷新后继续寻找逃生物品</div>':'')+'<button class="btn yellow wide" onclick="refreshIsland()">🔄 刷新荒岛</button></div></div>';
+};
+const progressValueBeforeEscape=progressValue;
+progressValue=function(p){
+  if(mode==="island")return p.island.escapes*20+p.island.fragments*3+p.island.keys*4;
+  return progressValueBeforeEscape(p);
+};
+const renderProgressBeforeEscape=renderProgress;
+renderProgress=function(){
+  if(mode!=="island"){renderProgressBeforeEscape();return}
+  const p=current();
+  if(!p){$("progress").innerHTML="";return}
+  const rows=[["逃生地图",p.island.fragments+"/3"],["古堡钥匙",p.island.keys+"/2"],["成功逃离",p.island.escapes+"次"]];
+  $("progress").innerHTML='<div class="progress" style="--pc:'+p.color+'"><div class="phead"><span class="avatar" style="--pc:'+p.color+'">'+p.name[0]+'</span><div><small>当前玩家</small><b>'+p.name+'</b></div><b>'+score(p)+' 分</b></div><section>'+rows.map(r=>'<p><span>'+r[0]+'</span><strong>'+r[1]+'</strong></p>').join('')+'</section></div>';
+};
+if(!started){
+  island=makeIsland();
+  toasts.island="收集3张地图和2把钥匙，准备逃离荒岛！";
+  logs.island=["等待荒岛逃生开始…"];
+}
+render();
+</script>
+<style>
+.part.collected{opacity:1;filter:none;border-style:solid;border-color:#f0b83b;background:#fff7d8}
+.part.installed{opacity:1;filter:none;border-style:solid;border-color:var(--mint);background:#e7fff7;box-shadow:inset 0 0 0 2px #48c7a633}
+.next-build{margin:11px 0;padding:11px;border:2px solid #d7e2e8;border-radius:14px;background:#f7fafb}
+.next-build strong,.next-build small{display:block}
+.next-build small{margin-top:5px;color:var(--muted);font-weight:900;line-height:1.5}
+</style>
+<script>
+const ROBOT_BUILD_STEPS=[
+  {name:"基础机体",parts:["head","legs"],energy:1,points:2},
+  {name:"强化机体",parts:["arms","shield"],energy:2,points:3},
+  {name:"终极机器人",parts:["core"],energy:3,points:5}
+];
+RULES.robot=[
+  "机器人分三次组装，而且每个阶段使用不同零件。",
+  "第一阶段需要智慧头部＋动力双腿＋1格升级能量；第二阶段需要机械手臂＋防护装甲＋2格能量；第三阶段需要中央芯片＋3格能量。",
+  "升级时用到的零件会从“待安装”移动到“已安装”，不会消失，也不会被下一阶段重复使用。",
+  "如果再次找到已经收集或安装过的零件，它会变成1格升级能量，同时得1分。",
+  "三次组装分别得2分、3分和5分；完成终极机器人后，五种零件都会显示为“已安装”。"
+];
+const newPlayerBeforeRobotInstall=newPlayer;
+newPlayer=function(name,i){
+  const p=newPlayerBeforeRobotInstall(name,i);
+  p.robot.installed=[];
+  return p;
+};
+const resetPlayerModeBeforeRobotInstall=resetPlayerMode;
+resetPlayerMode=function(p,k){
+  resetPlayerModeBeforeRobotInstall(p,k);
+  if(k==="robot")p.robot.installed=[];
+};
+openCrate=function(id){
+  if(!guard())return;
+  const b=crates.find(x=>x.id===id);
+  if(!b||b.open)return;
+  b.open=true;
+  if(b.reward==="energy"){
+    b.points=1;
+    finish("找到能量电池 +1分",p=>{p.robot.energy++;p.scores.robot++});
+    return;
+  }
+  const p=current(),label=PARTS[b.reward][1],pts=PARTS[b.reward][2],installed=p.robot.installed||[];
+  if(p.robot.parts.includes(b.reward)||installed.includes(b.reward)){
+    b.points=1;
+    finish("重复的"+label+"转成1格升级能量 +1分",x=>{x.robot.energy++;x.scores.robot++});
+  }else{
+    b.points=pts;
+    finish("获得"+label+" +"+pts+"分",x=>{x.robot.parts.push(b.reward);x.scores.robot+=pts},pts>=3?"rare":"good");
+  }
+};
+upgradeRobot=function(){
+  if(!guard())return;
+  const p=current(),step=ROBOT_BUILD_STEPS[p.robot.stage];
+  if(!step){announce(p.name+" 的终极机器人已经完成！");render();return}
+  const missing=step.parts.filter(k=>!p.robot.parts.includes(k));
+  if(missing.length||p.robot.energy<step.energy){
+    const needParts=missing.length?missing.map(k=>PARTS[k][1]).join("、"):"零件已齐";
+    announce(step.name+"还需要："+needParts+"，以及"+step.energy+"格升级能量");
+    render();
+    return;
+  }
+  const next=p.robot.stage+1,complete=next===3;
+  finish((complete?"终极机器人组装成功":"完成"+step.name)+" +"+step.points+"分",x=>{
+    x.robot.parts=x.robot.parts.filter(k=>!step.parts.includes(k));
+    x.robot.installed=[...(x.robot.installed||[]),...step.parts];
+    x.robot.energy-=step.energy;
+    x.robot.stage=next;
+    x.scores.robot+=step.points;
+  },complete?"rare":"good");
+};
+renderRobot=function(){
+  const p=current()||newPlayer("?",0),installed=p.robot.installed||[],step=ROBOT_BUILD_STEPS[p.robot.stage];
+  return '<div class="robot-layout"><div class="factory"><div class="robot s'+p.robot.stage+'">🤖</div><div class="meter"><i style="width:'+Math.min(100,p.robot.energy*16)+'%"></i></div><p>阶段 '+p.robot.stage+' / 3 · 升级能量 '+p.robot.energy+'</p></div><div class="controls"><span class="step">02</span><h3>打开神秘零件箱</h3><p>升级用过的零件会变成“已安装”，下一阶段必须收集另一组配件。</p><div class="crates">'+crates.map(b=>'<button class="crate '+(b.open?'open':'')+'" '+(b.open?'disabled':'')+' onclick="openCrate('+b.id+')">'+(b.open?'<span>'+(b.reward==="energy"?'🔋':PARTS[b.reward][0])+'</span><small>+ '+b.points+'分</small>':'?')+'</button>').join('')+'</div><div class="inventory">'+Object.entries(PARTS).map(([k,v])=>{const status=installed.includes(k)?"installed":p.robot.parts.includes(k)?"collected":"";const label=status==="installed"?"已安装":status==="collected"?"待安装":v[2]+"分";return '<span class="part '+status+'">'+v[0]+'<small>'+v[1]+' · '+label+'</small></span>'}).join('')+'</div><div class="next-build">'+(step?'<strong>下一阶段：'+step.name+'</strong><small>'+step.parts.map(k=>PARTS[k][0]+" "+PARTS[k][1]).join(" ＋ ")+' ＋ ⚡ '+step.energy+'格升级能量</small>':'<strong>✨ 终极机器人已经完成</strong><small>五种零件全部安装完毕</small>')+'</div><div class="dual"><button class="btn soft" onclick="charge()">⚡ 补充升级能量</button><button class="btn coral" onclick="upgradeRobot()">⬆ 安装并升级</button></div><button class="btn yellow wide" style="margin-top:9px" onclick="refreshCrates()">🔄 换一批零件箱</button></div></div>';
+};
+const progressValueBeforeRobotInstall=progressValue;
+progressValue=function(p){
+  if(mode==="robot")return p.robot.stage*4+new Set([...(p.robot.parts||[]),...(p.robot.installed||[])]).size;
+  return progressValueBeforeRobotInstall(p);
+};
+const renderProgressBeforeRobotInstall=renderProgress;
+renderProgress=function(){
+  if(mode!=="robot"){renderProgressBeforeRobotInstall();return}
+  const p=current();
+  if(!p){$("progress").innerHTML="";return}
+  const installed=p.robot.installed||[],rows=[["机器人阶段",p.robot.stage+"/3"],["待安装零件",p.robot.parts.length],["已安装零件",installed.length+"/5"],["升级能量",p.robot.energy]];
+  $("progress").innerHTML='<div class="progress" style="--pc:'+p.color+'"><div class="phead"><span class="avatar" style="--pc:'+p.color+'">'+p.name[0]+'</span><div><small>当前玩家</small><b>'+p.name+'</b></div><b>'+score(p)+' 分</b></div><section>'+rows.map(r=>'<p><span>'+r[0]+'</span><strong>'+r[1]+'</strong></p>').join('')+'</section></div>';
+};
+render();
 </script></body></html>
