@@ -697,4 +697,141 @@ renderProgress=function(){
   $("progress").innerHTML='<div class="progress" style="--pc:'+p.color+'"><div class="phead"><span class="avatar" style="--pc:'+p.color+'">'+p.name[0]+'</span><div><small>当前玩家</small><b>'+p.name+'</b></div><b>'+score(p)+' 分</b></div><section>'+rows.map(r=>'<p><span>'+r[0]+'</span><strong>'+r[1]+'</strong></p>').join('')+'</section></div>';
 };
 render();
+</script>
+<style>
+.student-actions{display:grid;grid-template-columns:1.25fr .95fr;gap:8px}
+.student-manage-btn{background:#fff;border:2px solid var(--line)}
+.student-manager{width:min(560px,100%);text-align:left}
+.student-manager h2{margin:3px 0 5px;text-align:center}
+.student-manager .manager-note{text-align:center;margin:0 0 16px;color:var(--muted);font-size:12px;font-weight:800;line-height:1.55}
+.student-add-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}
+.student-add-row input{min-width:0;border:2px solid var(--line);border-radius:13px;padding:11px 13px;font:inherit;font-weight:900;color:var(--ink);outline:none}
+.student-add-row input:focus{border-color:var(--yellow);box-shadow:0 0 0 3px #ffc83d33}
+.student-manager-status{min-height:20px;margin:2px 0 9px;color:#b14a43;font-size:11px;font-weight:900;text-align:center}
+.student-name-list{max-height:315px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:2px}
+.student-name-row{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--line);border-radius:12px;background:#f8fbfc}
+.student-name-row i{font-style:normal;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#e8eef2;font-size:11px;font-weight:1000}
+.student-name-row b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.student-delete{border:0;border-radius:9px;background:#ffe8e5;color:#a83f38;padding:6px 8px;cursor:pointer;font-weight:1000}
+.student-manager-footer{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+.manage-during-game{margin-top:8px}
+@media(max-width:560px){.student-actions,.student-manager-footer{grid-template-columns:1fr}.student-name-list{grid-template-columns:1fr}}
+</style>
+<script>
+const STUDENT_NAMES_STORAGE_KEY="growthAdventureStudentNamesV1";
+const DEFAULT_STUDENT_NAMES=[...STUDENTS];
+
+function cleanStudentNames(list){
+  const seen=new Set(),result=[];
+  for(const value of Array.isArray(list)?list:[]){
+    const name=String(value??"").trim().replace(/\s+/g," ").slice(0,24);
+    const key=name.toLocaleLowerCase();
+    if(name&&!seen.has(key)){
+      seen.add(key);
+      result.push(name);
+    }
+    if(result.length>=60)break;
+  }
+  return result;
+}
+function saveStudentNames(){
+  try{
+    window.localStorage.setItem(STUDENT_NAMES_STORAGE_KEY,JSON.stringify(STUDENTS));
+  }catch(error){}
+}
+function loadSavedStudentNames(){
+  try{
+    const raw=window.localStorage.getItem(STUDENT_NAMES_STORAGE_KEY);
+    if(!raw)return;
+    const saved=cleanStudentNames(JSON.parse(raw));
+    if(saved.length)STUDENTS.splice(0,STUDENTS.length,...saved);
+  }catch(error){}
+}
+function escapeStudentName(name){
+  return String(name).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+}
+function toggleStudentAt(index){
+  const name=STUDENTS[index];
+  if(name!==undefined)toggleStudent(name);
+}
+function setStudentManagerStatus(message,good=false){
+  const status=$("studentManagerStatus");
+  if(status){
+    status.textContent=message;
+    status.style.color=good?"#21735f":"#b14a43";
+  }
+}
+function renderStudentManagerRows(){
+  const list=$("studentNameRows");
+  if(!list)return;
+  list.innerHTML=STUDENTS.length?STUDENTS.map((name,index)=>
+    '<div class="student-name-row"><i>'+(index+1)+'</i><b title="'+escapeStudentName(name)+'">'+escapeStudentName(name)+'</b><button class="student-delete" onclick="removeStudentName('+index+')">删除</button></div>'
+  ).join(""):'<p class="note" style="grid-column:1/-1;text-align:center">名单还是空的，请先添加小朋友。</p>';
+}
+function showStudentManager(){
+  if(started){
+    $("modal").innerHTML='<div class="overlay"><div class="modal"><button class="close" onclick="closeResults()">×</button><div class="trophy">👥</div><h2>游戏进行中</h2><p class="note" style="font-size:13px">为了不影响当前轮次，请先点击顶部“重新选人”，再增减学生名单。</p><button class="btn coral wide" style="margin-top:14px" onclick="closeResults()">知道了</button></div></div>';
+    return;
+  }
+  $("modal").innerHTML='<div class="overlay"><div class="modal student-manager"><button class="close" onclick="closeResults()">×</button><p class="eyebrow" style="text-align:center">STUDENT LIST</p><h2>管理学生名单</h2><p class="manager-note">新增或删除后会立即保存在这个浏览器里。只保存姓名，不保存勾选、分数或游戏进度。</p><div class="student-add-row"><input id="newStudentName" maxlength="24" autocomplete="off" placeholder="输入小朋友姓名" onkeydown="if(event.key===\'Enter\'){addStudentName()}"><button class="btn yellow" onclick="addStudentName()">＋ 添加</button></div><div class="student-manager-status" id="studentManagerStatus"></div><div class="student-name-list" id="studentNameRows"></div><div class="student-manager-footer"><button class="btn soft" onclick="restoreDefaultStudentNames()">恢复默认名单</button><button class="btn coral" onclick="closeResults()">完成</button></div></div></div>';
+  renderStudentManagerRows();
+  const input=$("newStudentName");
+  if(input&&input.focus)input.focus();
+}
+function addStudentName(){
+  const input=$("newStudentName");
+  const name=String(input&&input.value||"").trim().replace(/\s+/g," ").slice(0,24);
+  if(!name){
+    setStudentManagerStatus("请先输入姓名。");
+    return;
+  }
+  if(STUDENTS.some(item=>item.toLocaleLowerCase()===name.toLocaleLowerCase())){
+    setStudentManagerStatus("这个姓名已经在名单里了。");
+    return;
+  }
+  if(STUDENTS.length>=60){
+    setStudentManagerStatus("名单最多保存60人。");
+    return;
+  }
+  STUDENTS.push(name);
+  saveStudentNames();
+  renderStudents();
+  renderStudentManagerRows();
+  if(input)input.value="";
+  setStudentManagerStatus("已添加 "+name+"，并自动保存。",true);
+  if(input&&input.focus)input.focus();
+}
+function removeStudentName(index){
+  if(started)return;
+  const name=STUDENTS[index];
+  if(name===undefined)return;
+  STUDENTS.splice(index,1);
+  selected=selected.filter(item=>item!==name);
+  saveStudentNames();
+  renderStudents();
+  renderStudentManagerRows();
+  setStudentManagerStatus("已删除 "+name+"，并自动保存。",true);
+}
+function restoreDefaultStudentNames(){
+  STUDENTS.splice(0,STUDENTS.length,...DEFAULT_STUDENT_NAMES);
+  selected=selected.filter(name=>STUDENTS.includes(name));
+  saveStudentNames();
+  renderStudents();
+  renderStudentManagerRows();
+  setStudentManagerStatus("默认名单已恢复并自动保存。",true);
+}
+
+renderStudents=function(){
+  $("count").textContent=selected.length+"人";
+  $("students").innerHTML=STUDENTS.map((name,index)=>
+    '<button class="student '+(selected.includes(name)?"on":"")+'" '+(started?"disabled":"")+' onclick="toggleStudentAt('+index+')"><i>'+(selected.includes(name)?"✓":escapeStudentName(name).slice(0,1))+'</i>'+escapeStudentName(name)+'</button>'
+  ).join("");
+  $("startArea").innerHTML=!started
+    ?'<div class="student-actions"><button class="btn coral wide" onclick="startGame()">开始新局</button><button class="btn student-manage-btn wide" onclick="showStudentManager()">✏️ 管理名单</button></div>'
+    :'<div class="turn" style="--pc:'+current().color+'"><small>'+INFO[mode].title+'现在轮到</small><strong>'+escapeStudentName(current().name)+'</strong><p>完成一次有效行动后自动换人</p></div><button class="btn student-manage-btn wide manage-during-game" onclick="showStudentManager()">✏️ 管理名单</button>';
+};
+
+loadSavedStudentNames();
+selected=selected.filter(name=>STUDENTS.includes(name));
+render();
 </script></body></html>
